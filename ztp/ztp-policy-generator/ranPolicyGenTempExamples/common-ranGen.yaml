@@ -41,6 +41,8 @@ sourceFiles:
       machineconfiguration.openshift.io/role: worker
   - fileName: disconnected-edge-cmap
     policyName: "disconnected-edge-cmap-policy"
+  - fileName: image
+    policyName: "image-policy"
   - fileName: disconnected-pull
     policyName: "disconnected-pull-policy"
   - fileName: ImageContentSourcePolicy
