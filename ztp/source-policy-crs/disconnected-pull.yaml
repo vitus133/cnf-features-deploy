@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  .dockerconfigjson: eyJhdXRocyI6IHsiZGhjcC01NS0xNTkubGFiLmVuZy50bHYyLnJlZGhhdC5jb206NTAwMCIgOiB7ImF1dGgiOiAiWkhWdGJYazZaSFZ0YlhrPSIsICJlbWFpbCI6ICJqaGVuZHJpeEBrYXJtYWxhYnMuY29tIn19fQ==
+kind: Secret
+metadata:
+  creationTimestamp: "2021-06-03T06:58:05Z"
+  name: pull-secret
+  namespace: openshift-config
+

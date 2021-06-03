@@ -1,0 +1,10 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: redhat-operators-disconnected
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/redhat-operators-disconnected:latest
+  displayName: redhat-operators-disconnected-catalog
+  publisher: Red Hat
