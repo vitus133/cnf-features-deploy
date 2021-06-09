@@ -12,13 +12,13 @@ metadata:
     mcp: master
 sourceFiles:
   - fileName: SriovNetwork
-    policyName: "sriov-nw-fh-policy"
+    policyName: "nw-fh-p"
     name: "sriov-nw-du-fh"
     spec:
       resourceName: du_fh
       vlan: 140
   - fileName: SriovNetworkNodePolicy
-    policyName: "sriov-nnp-fh-policy"
+    policyName: "nnp-fh-p"
     name: "sriov-nnp-du-fh"
     spec:
       deviceType: netdevice
@@ -29,13 +29,13 @@ sourceFiles:
       priority: 10
       resourceName: du_fh
   - fileName: SriovNetwork
-    policyName: "sriov-nw-mh-policy"
+    policyName: "nw-mh-p"
     name: "sriov-nw-du-mh"
     spec:
       resourceName: du_mh
       vlan: 150
   - fileName: SriovNetworkNodePolicy
-    policyName: "sriov-nnp-mh-policy"
+    policyName: "nnp-mh-p"
     name: "sriov-nnp-du-mh"
     spec:
       deviceType: vfio-pci
@@ -47,7 +47,7 @@ sourceFiles:
       resourceName: du_mh
   - fileName: PerformanceProfile
     name: "perfprofile-policy"
-    policyName: "perfprofile-policy"
+    policyName: "pao-p"
     spec:
       cpu:
         isolated: "2-19,22-39"

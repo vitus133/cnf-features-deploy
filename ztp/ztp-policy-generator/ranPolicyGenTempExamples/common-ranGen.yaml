@@ -13,42 +13,42 @@ metadata:
 sourceFiles:
   # Create operators policies that will be installed in all clusters
   - fileName: SriovSubscriptionLocal
-    policyName: "sriov-sub-policy"
+    policyName: "sriov-s-p"
   - fileName: SriovSubscriptionNS
-    policyName: "sriov-sub-ns-policy"
+    policyName: "sriov-s-ns-p"
   - fileName: SriovSubscriptionOperGroup
-    policyName: "sriov-sub-oper-policy"
+    policyName: "sriov-s-op-p"
   - fileName: PtpSubscriptionLocal
-    policyName: "ptp-sub-policy"
+    policyName: "ptp-s-p"
   - fileName: PtpSubscriptionNS
-    policyName: "ptp-sub-ns-policy"
+    policyName: "ptp-s-ns-p"
   - fileName: PtpSubscriptionOperGroup
-    policyName: "ptp-sub-oper-policy"
+    policyName: "ptp-s-op-p"
   - fileName: PaoSubscriptionLocal
-    policyName: "pao-sub-policy"
+    policyName: "pao-s-p"
   - fileName: PaoSubscriptionNS
-    policyName: "pao-sub-ns-policy"
+    policyName: "pao-s-ns-p"
   - fileName: PaoSubscriptionOperGroup
-    policyName: "pao-sub-oper-policy"
+    policyName: "pao-s-op-p"
   - fileName: CatalogSourceLocal
-    policyName: "catalog-source-policy"
+    policyName: "catsrc-p"
   - fileName: ClusterLogSubscription
-    policyName: "log-sub-policy"
+    policyName: "log-s-p"
   - fileName: MachineConfigContainerMountNS
-    policyName: "worker-mc-mount-ns-policy"
+    policyName: "w-mc-mnt-ns-p"
     name: "02-worker-container-mount-namespace"
     labels:
       machineconfiguration.openshift.io/role: worker
   - fileName: disconnected-edge-cmap
-    policyName: "disconnected-edge-cmap-policy"
+    policyName: "disc-cmap-p"
   - fileName: image
-    policyName: "image-policy"
+    policyName: "img-p"
   - fileName: disconnected-pull
-    policyName: "disconnected-pull-policy"
+    policyName: "disc-pull-p"
   - fileName: ImageContentSourcePolicy
-    policyName: "icsp-policy"
+    policyName: "icsp-p"
   - fileName: MachineConfigContainerMountNS
-    policyName: "master-mc-mount-ns-policy"
+    policyName: "m-mc-mnt-ns-p"
     name: "02-master-container-mount-namespace"
     labels:
       machineconfiguration.openshift.io/role: master

@@ -13,10 +13,10 @@ metadata:
     mcp: "master"
 sourceFiles:
   - fileName: ConsoleOperatorDisable
-    policyName: "console-policy"
+    policyName: "console-p"
   # Set ClusterLogForwarder & ClusterLogging as example might be better to create another policyTemp-Group
   - fileName: ClusterLogForwarder
-    policyName: "log-forwarder-policy"
+    policyName: "log-fwd-p"
     spec:
       outputs:
         - type: "kafka"
@@ -35,7 +35,7 @@ sourceFiles:
           outputRefs:
            - kafka-open
   - fileName: ClusterLogging
-    policyName: "log-policy"
+    policyName: "log-p"
     spec:
       curation:
         curator:
@@ -45,13 +45,13 @@ sourceFiles:
           type: "fluentd"
           fluentd: {}
   - fileName: MachineConfigSctp
-    policyName: "mc-sctp-policy"
+    policyName: "mc-sctp-p"
     labels:
       machineconfiguration.openshift.io/role: master
   - fileName: MachineConfigDisableChronyd
     policyName: "mc-chronyd-policy"
   - fileName: PtpConfigSlave
-    policyName: "ptp-config-policy"
+    policyName: "ptp-cfg-p"
     name: "du-ptp-slave"
     spec:
       profile:
@@ -60,6 +60,6 @@ sourceFiles:
         ptp4lOpts: "-2 -s --summary_interval -4"
         phc2sysOpts: "-a -r -n 24"
   - fileName: SriovOperatorConfig
-    policyName: "sriov-operconfig-policy"
+    policyName: "sriov-opcfg-p"
     spec:
       disableDrain: true

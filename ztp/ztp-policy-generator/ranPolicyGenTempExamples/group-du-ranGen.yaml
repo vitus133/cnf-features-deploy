@@ -13,4 +13,4 @@ metadata:
 # sourceFiles.fileName values should be same as file name in the sourcePolicies dir without .yaml extension
 sourceFiles:
   - fileName: MachineConfigPool
-    policyName: "mcp-worker-du-policy"
+    policyName: "mcp-wrk-du-p"
