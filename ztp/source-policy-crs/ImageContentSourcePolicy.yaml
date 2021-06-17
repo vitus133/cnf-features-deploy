@@ -5,59 +5,38 @@ metadata:
 spec:
   repositoryDigestMirrors:
   - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-logging-fluentd
-    source: registry.redhat.io/openshift4/ose-logging-fluentd
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-infiniband-cni
-    source: registry.redhat.io/openshift4/ose-sriov-infiniband-cni
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-cni
-    source: registry.redhat.io/openshift4/ose-sriov-cni
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-logging-curator5
-    source: registry.redhat.io/openshift4/ose-logging-curator5
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-network-config-daemon
-    source: registry.redhat.io/openshift4/ose-sriov-network-config-daemon
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/rh-osbs-openshift-ose-ptp-operator-bundle
-    source: registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-ptp-operator-bundle
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/rh-osbs-openshift4-performance-addon-operator-bundle-registry-container-rhel8
-    source: registry-proxy.engineering.redhat.com/rh-osbs/openshift4-performance-addon-operator-bundle-registry-container-rhel8
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-kube-rbac-proxy
-    source: registry.redhat.io/openshift4/ose-kube-rbac-proxy
-  - mirrors:
     - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-network-operator
     source: registry.redhat.io/openshift4/ose-sriov-network-operator
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-ptp
-    source: registry.redhat.io/openshift4/ose-ptp
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-performance-addon-rhel8-operator
-    source: registry.redhat.io/openshift4/performance-addon-rhel8-operator
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-dp-admission-controller
-    source: registry.redhat.io/openshift4/ose-sriov-dp-admission-controller
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-cluster-logging-operator
-    source: registry.redhat.io/openshift4/ose-cluster-logging-operator
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-network-webhook
-    source: registry.redhat.io/openshift4/ose-sriov-network-webhook
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-network-device-plugin
-    source: registry.redhat.io/openshift4/ose-sriov-network-device-plugin
-  - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-ptp-operator
-    source: registry.redhat.io/openshift4/ose-ptp-operator
   - mirrors:
     - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-operator-must-gather
     source: registry.redhat.io/openshift4/ose-sriov-operator-must-gather
   - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/rh-osbs-openshift-ose-cluster-logging-operator-bundle
-    source: registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-cluster-logging-operator-bundle
+    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-network-config-daemon
+    source: registry.redhat.io/openshift4/ose-sriov-network-config-daemon
   - mirrors:
-    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/rh-osbs-openshift-ose-sriov-network-operator-bundle
-    source: registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-sriov-network-operator-bundle
+    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-infiniband-cni
+    source: registry.redhat.io/openshift4/ose-sriov-infiniband-cni
+  - mirrors:
+    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-ptp
+    source: registry.redhat.io/openshift4/ose-ptp
+  - mirrors:
+    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-cni
+    source: registry.redhat.io/openshift4/ose-sriov-cni
+  - mirrors:
+    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-ptp-operator
+    source: registry.redhat.io/openshift4/ose-ptp-operator
+  - mirrors:
+    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-performance-addon-rhel8-operator
+    source: registry.redhat.io/openshift4/performance-addon-rhel8-operator
+  - mirrors:
+    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-kube-rbac-proxy
+    source: registry.redhat.io/openshift4/ose-kube-rbac-proxy
+  - mirrors:
+    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-network-device-plugin
+    source: registry.redhat.io/openshift4/ose-sriov-network-device-plugin
+  - mirrors:
+    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-dp-admission-controller
+    source: registry.redhat.io/openshift4/ose-sriov-dp-admission-controller
+  - mirrors:
+    - dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-catalog/openshift4-ose-sriov-network-webhook
+    source: registry.redhat.io/openshift4/ose-sriov-network-webhook
