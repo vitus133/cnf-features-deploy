@@ -1,9 +1,8 @@
 apiVersion: v1
 data:
-  .dockerconfigjson: eyJhdXRocyI6IHsiZGhjcC01NS0xNTkubGFiLmVuZy50bHYyLnJlZGhhdC5jb206NTAwMCIgOiB7ImF1dGgiOiAiWkhWdGJYazZaSFZ0YlhrPSIsICJlbWFpbCI6ICJqaGVuZHJpeEBrYXJtYWxhYnMuY29tIn19fQ==
+  .dockerconfigjson: eyJhdXRocyI6IHsiZGhjcDE5LTE3LTEwLmNsdXMyLnQ1Zy5sYWIuZW5nLmJvcy5yZWRoYXQuY29tOjUwMDAiIDogeyJhdXRoIjogIlpIVnRiWGs2WkhWdGJYaz0iLCAiZW1haWwiOiAiamhlbmRyaXhAa2FybWFsYWJzLmNvbSJ9fX0=
 kind: Secret
 metadata:
-  creationTimestamp: "2021-06-03T06:58:05Z"
   name: pull-secret
   namespace: openshift-config
 
