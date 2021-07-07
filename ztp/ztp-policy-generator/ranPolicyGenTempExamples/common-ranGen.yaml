@@ -52,3 +52,9 @@ sourceFiles:
     name: "02-master-container-mount-namespace"
     labels:
       machineconfiguration.openshift.io/role: master
+  - fileName: LsoSubscriptionLocal
+    policyName: lso-sub-p
+  - fileName: LsoSubscriptionNS
+    policyName: lso-ns-p
+  - fileName: LsoSubscriptionOperGroup
+    policyName: lso-og-p    

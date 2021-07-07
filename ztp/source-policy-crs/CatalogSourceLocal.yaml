@@ -7,6 +7,6 @@ metadata:
     target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
 spec:
   sourceType: grpc
-  image: dhcp-55-159.lab.eng.tlv2.redhat.com:5000/redhat-operators-disconnected:latest
+  image: dhcp19-17-10.clus2.t5g.lab.eng.bos.redhat.com:5000/redhat-operators-disconnected:latest
   displayName: redhat-operators-disconnected-catalog
   publisher: Red Hat
