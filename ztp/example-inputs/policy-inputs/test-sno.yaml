@@ -3,12 +3,12 @@ apiVersion: policyGenerator/v1
 kind: PolicyGenTemplate
 metadata:
   # The name will be used to generate the placementBinding and placementRule names as {name}-placementBinding and {name}-placementRule
-  name: "site-du-sno-1-policies"
+  name: "test-sno-policies"
   namespace: "policy-template"
   labels:
     common: false
     groupName: "N/A"
-    siteName: "site-du-sno-1"
+    siteName: "test-sno"
     mcp: master
 sourceFiles:
   - fileName: SriovNetwork

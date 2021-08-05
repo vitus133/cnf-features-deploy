@@ -1,0 +1,1 @@
+This directory is an example for customer' gitops repository structure
