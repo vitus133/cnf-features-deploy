@@ -10,13 +10,12 @@
 # <your Red Hat email>
 # - Specify the type of your request:
 # Type 1
-REG ?= quay.io/redhat_emp1/ztp-site-generator
+REG ?= quay.io/redhat_emp1/ztp-site-generator-day1-2
 
 
 # The cnf-features-deploy zip file name. 
 ZIP_NAME ?= temp.zip
-all: prod
-
+TAR_NAME ?= temp.tar.gz
 ##@ General
 
 # The help target prints out all targets with their descriptions organized
@@ -34,7 +33,7 @@ help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Build image
-build: make_zip build_image clean_zip ## Build container image
+build: make_zip make_tar build_image clean_zip clean_tar  ## Build container image
 ##@ Make and push
 push:	## Push to Quay.io.
 	podman push ztp-site-generator:latest ${REG}
@@ -45,9 +44,13 @@ undeploy: ## Undeploy RBAC manifests and RAN Site CRD.
 	oc delete -k deployment
 
 make_zip:
-	zip -r ${ZIP_NAME} ../../../cnf-features-deploy/ztp ../../../cnf-features-deployfeature-configs
+	zip -r ${ZIP_NAME} ../../../../ztp
+make_tar:
+	tar cvzf ${TAR_NAME} ../../../../ztp/example-inputs ../../../../ztp/reference-design
 build_image:
-	podman build --build-arg ZIP_NAME=${ZIP_NAME} -t ztp-site-generator:latest -f Containerfile
+	podman build --build-arg ZIP_NAME=${ZIP_NAME} --build-arg TAR_NAME=${TAR_NAME} -t ztp-site-generator-day1-2:latest -f Containerfile
 clean_zip:
 	rm ${ZIP_NAME} || true
+clean_tar:
+	rm ${TAR_NAME}
 
