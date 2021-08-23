@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"path/filepath"
 )
 
 type FilesHandler struct {
@@ -52,10 +51,10 @@ func (fHandler *FilesHandler) ReadSourceFile(fileName string) ([]byte, error) {
 }
 
 func (fHandler *FilesHandler) ReadResourceFile(fileName string) ([]byte, error) {
-	ex, err := os.Executable()
-	dir := filepath.Dir(ex)
+	ex, err := os.Getwd()
+	//dir := filepath.Dir(ex)
 	if err != nil {
 		return nil, err
 	}
-	return fHandler.readFile( dir + "/" + ResourcesDir + "/" + fileName)
+	return fHandler.readFile( ex + "/" + ResourcesDir + "/" + fileName)
 }

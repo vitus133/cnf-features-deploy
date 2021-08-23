@@ -2,12 +2,12 @@ package policyGen
 
 import (
 	"bytes"
+	"errors"
 	utils "github.com/openshift-kni/cnf-features-deploy/ztp/ztp-policy-generator/kustomize/plugin/policyGenerator/v1/policygenerator/utils"
 	yaml "gopkg.in/yaml.v3"
 	"io"
 	"reflect"
 	"strings"
-	"errors"
 )
 
 type PolicyBuilder struct {
@@ -41,8 +41,15 @@ func (pbuilder *PolicyBuilder) Build(policyGenTemp utils.PolicyGenTemplate) (map
 			path := policyGenTemp.Metadata.Name + "/" + policyGenTemp.Metadata.Name + "-" + sFile.PolicyName
 			if sFile.PolicyName == "" {
 				// Generate CR without append to policy
-				path := utils.CustomResource + "/" + path
-				policies[path] = resources
+				for _, resource := range resources {
+					name := resource["kind"].(string)
+					name = name + "-" + resource["metadata"].(map[string]interface{})["name"].(string)
+
+					if resource["metadata"].(map[string]interface{})["namespace"] != nil {
+						name = name + "-" + resource["metadata"].(map[string]interface{})["namespace"].(string)
+					}
+					policies[utils.CustomResource+"/"+ policyGenTemp.Metadata.Name+"/"+name] = resource
+				}
 			} else if sFile.PolicyName != "" && policies[path] == nil {
 				// Generate new policy
 				acmPolicy, err := pbuilder.createAcmPolicy(name, policyGenTemp.Metadata.Namespace, resources)
