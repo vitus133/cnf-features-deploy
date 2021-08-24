@@ -1,0 +1,13 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+    name: local-storage-operator
+    namespace: openshift-marketplace
+spec:
+    displayName: Openshift Local Storage Operator
+    icon:
+        base64data: ""
+        mediatype: ""
+    image: registry.example.com:5000/olm/far-edge-lso:latest
+    publisher: Red Hat
+    sourceType: grpc

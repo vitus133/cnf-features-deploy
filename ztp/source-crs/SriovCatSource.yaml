@@ -1,0 +1,10 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+    name: sriov-network-operator
+    namespace: openshift-marketplace
+spec:
+    displayName: sriov-network-operator-disconnected
+    image: registry.example.com:5000/olm/far-edge-sriov:latest
+    publisher: Red Hat
+    sourceType: grpc

@@ -1,0 +1,24 @@
+apiVersion: operator.openshift.io/v1alpha1
+kind: ImageContentSourcePolicy
+metadata:
+    name: redhat-internal-icsp
+spec:
+    repositoryDigestMirrors:
+        - mirrors:
+          - registry.example.com:5000
+          source: registry.redhat.io
+        - mirrors:
+          - registry.example.com:5000
+          source: registry-proxy.engineering.redhat.com
+        - mirrors:
+          - registry.example.com:5000
+          source: registry.stage.redhat.io
+        - mirrors:
+          - registry.example.com:5000/openshift-qe-optional-operators
+          source: quay.io/openshift-qe-optional-operators
+        - mirrors:
+          - registry.example.com:5000/openshifttest
+          source: quay.io/openshifttest
+        - mirrors:
+          - registry.example.com:5000/rh-nfv-int
+          source: quay.io/rh-nfv-int

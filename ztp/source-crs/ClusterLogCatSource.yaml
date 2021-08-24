@@ -1,0 +1,13 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+    name: cluster-logging-operator
+    namespace: openshift-marketplace
+spec:
+    displayName: Openshift Cluster Logging Operator
+    icon:
+        base64data: ""
+        mediatype: ""
+    image: registry.example.com:5000/olm/far-edge-clo:latest
+    publisher: Red Hat
+    sourceType: grpc

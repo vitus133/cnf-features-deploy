@@ -1,0 +1,10 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+    name: ptp-operator
+    namespace: openshift-marketplace
+spec:
+    displayName: ptp-operator-disconnected
+    image: registry.example.com:5000/olm/far-edge-ptp:latest
+    publisher: Red Hat
+    sourceType: grpc
