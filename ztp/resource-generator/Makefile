@@ -12,6 +12,7 @@
 # Type 1
 HOOK ?= quay.io/redhat_emp1/ztp-site-generator
 BASE ?= quay.io/redhat_emp1/ztp-base
+HOOK=GO ?= quay.io/vgrinber/ztp-site-generator
 
 TAR_NAME ?= temp.tar.gz
 ##@ General
@@ -48,3 +49,9 @@ build: ## Build the ZTP site generator image
 	podman build --build-arg TAR_NAME=${TAR_NAME} -t ztp-site-generator:latest -f Containerfile; \
 	rm ${TAR_NAME} && \
 	podman push ztp-site-generator:latest ${HOOK}
+
+hooks-go: ## Build the ZTP site generator image
+	tar cvzf ${TAR_NAME} --exclude *.gz ../../* && \
+	podman build --build-arg TAR_NAME=${TAR_NAME} -t ztp-site-generator:latest -f Containerfile.hooks-go; \
+	rm ${TAR_NAME} && \
+	podman push ztp-site-generator:latest ${HOOK-GO}
