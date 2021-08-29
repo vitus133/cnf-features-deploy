@@ -12,9 +12,10 @@
 # Type 1
 HOOK ?= quay.io/redhat_emp1/ztp-site-generator
 BASE ?= quay.io/redhat_emp1/ztp-base
-HOOK=GO ?= quay.io/vgrinber/ztp-site-generator
+HOOK_GO ?= registry.testing:5000/vgrinber/ztp-site-dev
 
 TAR_NAME ?= temp.tar.gz
+
 ##@ General
 
 # The help target prints out all targets with their descriptions organized
@@ -27,7 +28,8 @@ TAR_NAME ?= temp.tar.gz
 # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
 # More info on the awk command:
 # http://linuxcommand.org/lc3_adv_awk.php
-
+.PHONY: all
+SHELL = bash
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
@@ -46,12 +48,14 @@ base:  ## Build base image containing the CLI tools and python.
 	podman push ztp-base:latest ${BASE}
 build: ## Build the ZTP site generator image
 	tar cvzf ${TAR_NAME} --exclude *.gz ../../* && \
-	podman build --build-arg TAR_NAME=${TAR_NAME} -t ztp-site-generator:latest -f Containerfile; \
+	podman build --build-arg TAR_NAME=${TAR_NAME} -t ztp-site-generator:latest -f Containerfile ; \
 	rm ${TAR_NAME} && \
 	podman push ztp-site-generator:latest ${HOOK}
 
+
 hooks-go: ## Build the ZTP site generator image
 	tar cvzf ${TAR_NAME} --exclude *.gz ../../* && \
-	podman build --build-arg TAR_NAME=${TAR_NAME} -t ztp-site-generator:latest -f Containerfile.hooks-go; \
+	podman build --build-arg TAR_NAME=${TAR_NAME} -t ztp-site-dev:latest -f Containerfile.hooks-go ; \
 	rm ${TAR_NAME} && \
-	podman push ztp-site-generator:latest ${HOOK-GO}
+	podman push ztp-site-dev:latest ${HOOK_GO}
+

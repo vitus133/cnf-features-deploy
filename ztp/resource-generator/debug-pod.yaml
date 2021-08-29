@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hooks-go
+  namespace: clusters-sub
+spec:
+  containers:
+    - name: ztp-site-generator-container
+      image: registry.testing:5000/vgrinber/ztp-site-dev:latest
+      command:
+      - /bin/bash
+      - -c
+      - "sleep inf"
+  restartPolicy: Never
