@@ -10,8 +10,9 @@
 # <your Red Hat email>
 # - Specify the type of your request:
 # Type 1
-HOOK ?= quay.io/redhat_emp1/ztp-site-generator
-BASE ?= quay.io/redhat_emp1/ztp-base
+HOOK ?= quay.io/vgrinber/ztp-site-generator
+BASE ?= quay.io/vgrinber/ztp-base
+PIPER ?= quay.io/vgrinber/piper
 
 TAR_NAME ?= temp.tar.gz
 ##@ General
@@ -48,3 +49,6 @@ build: ## Build the ZTP site generator image
 	podman build --build-arg TAR_NAME=${TAR_NAME} -t ztp-site-generator:latest -f Containerfile; \
 	rm ${TAR_NAME} && \
 	podman push ztp-site-generator:latest ${HOOK}
+piper:  ## Build base image containing the CLI tools and python.
+	podman build -t piper:latest -f Containerfile.piper && \
+	podman push piper:latest ${PIPER}

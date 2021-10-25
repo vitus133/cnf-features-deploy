@@ -1,10 +1,10 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: common
-  labels:
-    name: common
----
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: common
+#   labels:
+#     name: common
+# ---
 apiVersion: ran.openshift.io/v1
 kind: PolicyGenTemplate
 metadata:

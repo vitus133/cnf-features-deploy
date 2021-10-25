@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- files:
+  - ClusterLogCatSource.yaml
+  - ClusterLogForwarder.yaml
+  - ClusterLogOperGroup.yaml
+  - ClusterLogSubscription.yaml
+  - ClusterLogging.yaml
+  - ConsoleOperatorDisable.yaml
+  - DisableSnoNetworkDiag.yaml
+  - DisconnectedICSP.yaml
+  - MachineConfigAcceleratedStartup.yaml
+  - MachineConfigContainerMountNS.yaml
+  - MachineConfigDisableChronyd.yaml
+  - MachineConfigPool.yaml
+  - MachineConfigSctp.yaml
+  - OperatorHub.yaml
+  - PaoSubscription.yaml
+  - PaoSubscriptionCatalogSource.yaml
+  - PaoSubscriptionNS.yaml
+  - PaoSubscriptionOperGroup.yaml
+  - PerformanceProfile.yaml
+  - PtpCatSource.yaml
+  - PtpConfigMaster.yaml
+  - PtpConfigSlave.yaml
+  - PtpConfigSlaveCvl.yaml
+  - PtpSubscription.yaml
+  - PtpSubscriptionNS.yaml
+  - PtpSubscriptionOperGroup.yaml
+  - ReduceMonitoringFootprint.yaml
+  - SriovCatSource.yaml
+  - SriovNetwork.yaml
+  - SriovNetworkNodePolicy.yaml
+  - SriovOperatorConfig.yaml
+  - SriovSubscription.yaml
+  - SriovSubscriptionNS.yaml
+  - SriovSubscriptionOperGroup.yaml
+  - StorageCatSource.yaml
+  - StorageNS.yaml
+  - StorageOperGroup.yaml
+  - StorageSubscription.yaml
+  - TunedPerformancePatch.yaml
+  - kustomization.yaml
+  name: source-crs
+

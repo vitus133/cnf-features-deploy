@@ -1,0 +1,9 @@
+# Container image
+FROM quay.io/vgrinber/ztp-site-generator:latest
+USER root
+COPY src/piper.py /usr/local/bin/piper
+COPY src/watcher.py /usr/local/bin/watcher.py
+USER 1001
+
+#kustomize build ztp/resource-generator/source-crs |  podman run -i piper  /usr/local/bin/piper
+#cat ztp/source-crs/* | podman run -i piper  /usr/local/bin/piper
