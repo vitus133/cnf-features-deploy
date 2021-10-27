@@ -1,0 +1,4 @@
+resources:
+- cnfdt16.yaml
+- common-cnfdt16.yaml
+- group-cnfdt16.yaml
