@@ -4,4 +4,4 @@ resources:
 #- ../../gitops-subscriptions/argocd/resource-hook-example/policygentemplates
 
 # Use command
-# kustomize build source-crs | podman run -iq quay.io/vgrinber/piper:latest  /usr/local/bin/piper
+# kustomize build source-crs | podman run -iq quay.io/vgrinber/piper:v4.10  /usr/local/bin/piper

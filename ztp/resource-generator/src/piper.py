@@ -27,18 +27,23 @@ def files_to_yamls(files=None):
 def make_files(yamls: dict):
     os.mkdir("/tmp/manifests")
     os.mkdir("/tmp/ztp/source-crs")
+    os.mkdir("/tmp/passtru")
 
     for item in yamls:
-        with open(item, "r") as ym:
+        with open(f"{item}", "r") as ym:
             ym_dict = yaml.safe_load(ym)
             if ym_dict.get('kind') == "Configmap" and ym.get('metadata').get('name').startswith("source-crs"):
                 data = ym.get('data')
                 for item in data:
                     with open(f"/tmp/ztp/source-crs/{item}", "w") as f:
                         f.write(data[item])
-                os.unlink(item)
             else:
-                shutil.move(f"/tmp/{item}", f"/tmp/manifests/{item}")
+                name = os.path.basename(item)
+                if ym_dict.get('kind') == "PolicyGenTemplate":
+                    shutil.move(f"/tmp/{name}", f"/tmp/manifests/{name}")
+                else:
+                    shutil.move(f"/tmp/{name}", f"/tmp/passtru/{name}")
+
         
 
 def find_files(root):
@@ -56,6 +61,11 @@ if __name__ == "__main__":
     PolicyGenWrapper(dirs)
 
     for item in find_files("/tmp/ztp/pg-out"):
+        with open(item, 'r') as f:
+            txt = f.read()
+            print(txt)
+            print("---")
+    for item in find_files("/tmp/passtru"):
         with open(item, 'r') as f:
             txt = f.read()
             print(txt)
