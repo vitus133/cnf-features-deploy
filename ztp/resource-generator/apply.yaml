@@ -1,0 +1,1316 @@
+apiVersion: apps.open-cluster-management.io/v1
+kind: PlacementRule
+metadata:
+    name: cnfdt16-placementrules
+    namespace: cnfdt16-policies
+spec:
+    clusterSelector:
+        matchExpressions:
+            - key: siteName
+              operator: In
+              values:
+                - cnfdt16
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: cnfdt16-sriov-nw-mh-policy
+    namespace: cnfdt16-policies
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: cnfdt16-sriov-nw-mh-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: sriovnetwork.openshift.io/v1
+                        kind: SriovNetwork
+                        metadata:
+                            name: sriov-nw-du-mh
+                            namespace: openshift-sriov-network-operator
+                        spec:
+                            networkNamespace: openshift-sriov-network-operator
+                            resourceName: du_mh
+                            vlan: 150
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+    name: cnfdt16-placementbinding
+    namespace: cnfdt16-policies
+placementRef:
+    name: cnfdt16-placementrules
+    kind: PlacementRule
+    apiGroup: apps.open-cluster-management.io
+subjects:
+    - name: cnfdt16-sriov-nw-fh-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: cnfdt16-sriov-nnp-fh-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: cnfdt16-sriov-nw-mh-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: cnfdt16-sriov-nnp-mh-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: cnfdt16-perfprofile-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: cnfdt16-tuned-perf-patch-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: cnfdt16-sriov-nnp-fh-policy
+    namespace: cnfdt16-policies
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: cnfdt16-sriov-nnp-fh-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: sriovnetwork.openshift.io/v1
+                        kind: SriovNetworkNodePolicy
+                        metadata:
+                            name: sriov-nnp-du-fh
+                            namespace: openshift-sriov-network-operator
+                        spec:
+                            deviceType: netdevice
+                            isRdma: true
+                            nicSelector:
+                                pfNames:
+                                    - ens5f0
+                            nodeSelector:
+                                node-role.kubernetes.io/master: ""
+                            numVfs: 8
+                            priority: 10
+                            resourceName: du_fh
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: cnfdt16-perfprofile-policy
+    namespace: cnfdt16-policies
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: cnfdt16-perfprofile-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: performance.openshift.io/v1
+                        kind: PerformanceProfile
+                        metadata:
+                            name: openshift-node-performance-profile
+                        spec:
+                            additionalKernelArgs:
+                                - idle=poll
+                                - rcupdate.rcu_normal_after_boot=0
+                            cpu:
+                                isolated: 2-51,54-103
+                                reserved: 0-1,52-53
+                            hugepages:
+                                defaultHugepagesSize: 1G
+                                pages:
+                                    - count: 32
+                                      size: 1G
+                            machineConfigPoolSelector:
+                                pools.operator.machineconfiguration.openshift.io/master: ""
+                            net:
+                                userLevelNetworking: true
+                            nodeSelector:
+                                node-role.kubernetes.io/master: ""
+                            numa:
+                                topologyPolicy: restricted
+                            realTimeKernel:
+                                enabled: true
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: cnfdt16-sriov-nw-fh-policy
+    namespace: cnfdt16-policies
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: cnfdt16-sriov-nw-fh-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: sriovnetwork.openshift.io/v1
+                        kind: SriovNetwork
+                        metadata:
+                            name: sriov-nw-du-fh
+                            namespace: openshift-sriov-network-operator
+                        spec:
+                            networkNamespace: openshift-sriov-network-operator
+                            resourceName: du_fh
+                            vlan: 140
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: cnfdt16-sriov-nnp-mh-policy
+    namespace: cnfdt16-policies
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: cnfdt16-sriov-nnp-mh-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: sriovnetwork.openshift.io/v1
+                        kind: SriovNetworkNodePolicy
+                        metadata:
+                            name: sriov-nnp-du-mh
+                            namespace: openshift-sriov-network-operator
+                        spec:
+                            deviceType: vfio-pci
+                            isRdma: false
+                            nicSelector:
+                                pfNames:
+                                    - ens7f0
+                            nodeSelector:
+                                node-role.kubernetes.io/master: ""
+                            numVfs: 8
+                            priority: 10
+                            resourceName: du_mh
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: cnfdt16-tuned-perf-patch-policy
+    namespace: cnfdt16-policies
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: cnfdt16-tuned-perf-patch-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: tuned.openshift.io/v1
+                        kind: Tuned
+                        metadata:
+                            name: performance-patch
+                            namespace: openshift-cluster-node-tuning-operator
+                        spec:
+                            profile:
+                                - data: |
+                                    [main]
+                                    summary=Configuration changes profile inherited from performance created tuned
+                                    include=openshift-node-performance-openshift-node-performance-profile
+                                    [bootloader]
+                                    cmdline_crash=nohz_full=2-51,54-103
+                                    [sysctl]
+                                    kernel.timer_migration=1
+                                    [service]
+                                    service.stalld=start,enable
+                                  name: performance-patch
+                            recommend:
+                                - machineConfigLabels:
+                                    machineconfiguration.openshift.io/role: master
+                                  priority: 19
+                                  profile: performance-patch
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: group-cnfdt16-sriov-conf-policy
+    namespace: group-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: group-cnfdt16-sriov-conf-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: sriovnetwork.openshift.io/v1
+                        kind: SriovOperatorConfig
+                        metadata:
+                            name: default
+                            namespace: openshift-sriov-network-operator
+                        spec:
+                            configDaemonNodeSelector:
+                                node-role.kubernetes.io/master: ""
+                            disableDrain: true
+                            enableInjector: true
+                            enableOperatorWebhook: true
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: group-cnfdt16-log-forwarder-policy
+    namespace: group-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: group-cnfdt16-log-forwarder-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: logging.openshift.io/v1
+                        kind: ClusterLogForwarder
+                        metadata:
+                            name: instance
+                            namespace: openshift-logging
+                        spec:
+                            inputs:
+                                - infrastructure:
+                                    namespaces:
+                                        - openshift-apiserver
+                                        - openshift-cluster-version
+                                        - openshift-etcd
+                                        - openshift-kube-scheduler
+                                        - openshift-monitoring
+                                        - openshift-performance-addon
+                                        - openshift-ptp
+                                        - openshift-machine-config-operator
+                                        - open-cluster-management-agent
+                                        - open-cluster-management-agent-addon
+                                  name: infra-logs
+                            outputs:
+                                - name: kafka-open
+                                  type: kafka
+                                  url: tcp://10.46.55.190:9092/test
+                            pipelines:
+                                - inputRefs:
+                                    - audit
+                                  name: audit-logs
+                                  outputRefs:
+                                    - kafka-open
+                                - inputRefs:
+                                    - infrastructure
+                                  name: infrastructure-logs
+                                  outputRefs:
+                                    - kafka-open
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: group-cnfdt16-log-policy
+    namespace: group-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: group-cnfdt16-log-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: logging.openshift.io/v1
+                        kind: ClusterLogging
+                        metadata:
+                            name: instance
+                            namespace: openshift-logging
+                        spec:
+                            collection:
+                                logs:
+                                    fluentd: {}
+                                    type: fluentd
+                            curation:
+                                curator:
+                                    schedule: 30 3 * * *
+                                type: curator
+                            managementState: Managed
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+    name: group-cnfdt16-placementbinding
+    namespace: group-cnfdt16
+placementRef:
+    name: group-cnfdt16-placementrules
+    kind: PlacementRule
+    apiGroup: apps.open-cluster-management.io
+subjects:
+    - name: group-cnfdt16-console-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: group-cnfdt16-log-forwarder-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: group-cnfdt16-log-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: group-cnfdt16-mc-sctp-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: group-cnfdt16-ptp-config-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: group-cnfdt16-sriov-conf-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: group-cnfdt16-mc-accelerated-startup-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+
+---
+apiVersion: apps.open-cluster-management.io/v1
+kind: PlacementRule
+metadata:
+    name: group-cnfdt16-placementrules
+    namespace: group-cnfdt16
+spec:
+    clusterSelector:
+        matchExpressions:
+            - key: group-cnfdt16
+              operator: In
+              values:
+                - ""
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: group-cnfdt16-mc-sctp-policy
+    namespace: group-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: group-cnfdt16-mc-sctp-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: machineconfiguration.openshift.io/v1
+                        kind: MachineConfig
+                        metadata:
+                            labels:
+                                machineconfiguration.openshift.io/role: master
+                            name: load-sctp-module
+                        spec:
+                            config:
+                                ignition:
+                                    version: 2.2.0
+                                storage:
+                                    files:
+                                        - contents:
+                                            source: data:,
+                                            verification: {}
+                                          filesystem: root
+                                          mode: 420
+                                          path: /etc/modprobe.d/sctp-blacklist.conf
+                                        - contents:
+                                            source: data:text/plain;charset=utf-8,sctp
+                                          filesystem: root
+                                          mode: 420
+                                          path: /etc/modules-load.d/sctp-load.conf
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: group-cnfdt16-console-policy
+    namespace: group-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: group-cnfdt16-console-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operator.openshift.io/v1
+                        kind: Console
+                        metadata:
+                            annotations:
+                                include.release.openshift.io/ibm-cloud-managed: "false"
+                                include.release.openshift.io/self-managed-high-availability: "false"
+                                include.release.openshift.io/single-node-developer: "false"
+                                release.openshift.io/create-only: "true"
+                            name: cluster
+                        spec:
+                            logLevel: Normal
+                            managementState: Removed
+                            operatorLogLevel: Normal
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: group-cnfdt16-ptp-config-policy
+    namespace: group-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: group-cnfdt16-ptp-config-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: ptp.openshift.io/v1
+                        kind: PtpConfig
+                        metadata:
+                            name: du-ptp-slave
+                            namespace: openshift-ptp
+                        spec:
+                            profile:
+                                - interface: ens5f0
+                                  name: slave
+                                  phc2sysOpts: -a -r -n 24
+                                  ptp4lConf: |
+                                    [global]
+                                    #
+                                    # Default Data Set
+                                    #
+                                    twoStepFlag 1
+                                    slaveOnly 0
+                                    priority1 128
+                                    priority2 128
+                                    domainNumber 24
+                                    #utc_offset 37
+                                    clockClass 248
+                                    clockAccuracy 0xFE
+                                    offsetScaledLogVariance 0xFFFF
+                                    free_running 0
+                                    freq_est_interval 1
+                                    dscp_event 0
+                                    dscp_general 0
+                                    dataset_comparison ieee1588
+                                    G.8275.defaultDS.localPriority 128
+                                    #
+                                    # Port Data Set
+                                    #
+                                    logAnnounceInterval -3
+                                    logSyncInterval -4
+                                    logMinDelayReqInterval -4
+                                    logMinPdelayReqInterval -4
+                                    announceReceiptTimeout 3
+                                    syncReceiptTimeout 0
+                                    delayAsymmetry 0
+                                    fault_reset_interval 4
+                                    neighborPropDelayThresh 20000000
+                                    masterOnly 0
+                                    G.8275.portDS.localPriority 128
+                                    #
+                                    # Run time options
+                                    #
+                                    assume_two_step 0
+                                    logging_level 6
+                                    path_trace_enabled 0
+                                    follow_up_info 0
+                                    hybrid_e2e 0
+                                    inhibit_multicast_service 0
+                                    net_sync_monitor 0
+                                    tc_spanning_tree 0
+                                    tx_timestamp_timeout 1
+                                    unicast_listen 0
+                                    unicast_master_table 0
+                                    unicast_req_duration 3600
+                                    use_syslog 1
+                                    verbose 0
+                                    summary_interval 0
+                                    kernel_leap 1
+                                    check_fup_sync 0
+                                    #
+                                    # Servo Options
+                                    #
+                                    pi_proportional_const 0.0
+                                    pi_integral_const 0.0
+                                    pi_proportional_scale 0.0
+                                    pi_proportional_exponent -0.3
+                                    pi_proportional_norm_max 0.7
+                                    pi_integral_scale 0.0
+                                    pi_integral_exponent 0.4
+                                    pi_integral_norm_max 0.3
+                                    step_threshold 0.0
+                                    first_step_threshold 0.00002
+                                    max_frequency 900000000
+                                    clock_servo pi
+                                    sanity_freq_limit 200000000
+                                    ntpshm_segment 0
+                                    #
+                                    # Transport options
+                                    #
+                                    transportSpecific 0x0
+                                    ptp_dst_mac 01:1B:19:00:00:00
+                                    p2p_dst_mac 01:80:C2:00:00:0E
+                                    udp_ttl 1
+                                    udp6_scope 0x0E
+                                    uds_address /var/run/ptp4l
+                                    #
+                                    # Default interface options
+                                    #
+                                    clock_type OC
+                                    network_transport UDPv4
+                                    delay_mechanism E2E
+                                    time_stamping hardware
+                                    tsproc_mode filter
+                                    delay_filter moving_median
+                                    delay_filter_length 10
+                                    egressLatency 0
+                                    ingressLatency 0
+                                    boundary_clock_jbod 0
+                                    #
+                                    # Clock description
+                                    #
+                                    productDescription ;;
+                                    revisionData ;;
+                                    manufacturerIdentity 00:00:00
+                                    userDescription ;
+                                    timeSource 0xA0
+                                  ptp4lOpts: -2 -s --summary_interval -4
+                            recommend:
+                                - match:
+                                    - nodeLabel: node-role.kubernetes.io/master
+                                  priority: 4
+                                  profile: slave
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: group-cnfdt16-mc-accelerated-startup-policy
+    namespace: group-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: group-cnfdt16-mc-accelerated-startup-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: machineconfiguration.openshift.io/v1
+                        kind: MachineConfig
+                        metadata:
+                            labels:
+                                machineconfiguration.openshift.io/role: master
+                            name: 04-accelerated-container-startup-master
+                        spec:
+                            config:
+                                ignition:
+                                    version: 3.2.0
+                                storage:
+                                    files:
+                                        - contents:
+                                            source: data:text/plain;charset=utf-8;base64,IyEvYmluL2Jhc2gKIwojIFRlbXBvcmFyaWx5IHJlc2V0IHRoZSBjb3JlIHN5c3RlbSBwcm9jZXNzZXMncyBDUFUgYWZmaW5pdHkgdG8gYmUgdW5yZXN0cmljdGVkIHRvIGFjY2VsZXJhdGUgc3RhcnR1cCBhbmQgc2h1dGRvd24KIwojIFRoZSBkZWZhdWx0cyBiZWxvdyBjYW4gYmUgb3ZlcnJpZGRlbiB2aWEgZW52aXJvbm1lbnQgdmFyaWFibGVzCiMKCiMgVGhlIGRlZmF1bHQgc2V0IG9mIGNyaXRpY2FsIHByb2Nlc3NlcyB3aG9zZSBhZmZpbml0eSBzaG91bGQgYmUgdGVtcG9yYXJpbHkgdW5ib3VuZDoKQ1JJVElDQUxfUFJPQ0VTU0VTPSR7Q1JJVElDQUxfUFJPQ0VTU0VTOi0ic3lzdGVtZCBvdnMgY3JpbyBrdWJlbGV0IE5ldHdvcmtNYW5hZ2VyIGNvbm1vbiBkYnVzIn0KCiMgRGVmYXVsdCB3YWl0IHRpbWUgaXMgNjAwcyA9IDEwbToKTUFYSU1VTV9XQUlUX1RJTUU9JHtNQVhJTVVNX1dBSVRfVElNRTotNjAwfQoKIyBEZWZhdWx0IHN0ZWFkeS1zdGF0ZSB0aHJlc2hvbGQgPSAyJQojIEFsbG93ZWQgdmFsdWVzOgojICA0ICAtIGFic29sdXRlIHBvZCBjb3VudCAoKy8tKQojICA0JSAtIHBlcmNlbnQgY2hhbmdlICgrLy0pCiMgIC0xIC0gZGlzYWJsZSB0aGUgc3RlYWR5LXN0YXRlIGNoZWNrClNURUFEWV9TVEFURV9USFJFU0hPTEQ9JHtTVEVBRFlfU1RBVEVfVEhSRVNIT0xEOi0yJX0KCiMgRGVmYXVsdCBzdGVhZHktc3RhdGUgd2luZG93ID0gNjBzCiMgSWYgdGhlIHJ1bm5pbmcgcG9kIGNvdW50IHN0YXlzIHdpdGhpbiB0aGUgZ2l2ZW4gdGhyZXNob2xkIGZvciB0aGlzIHRpbWUKIyBwZXJpb2QsIHJldHVybiBDUFUgdXRpbGl6YXRpb24gdG8gbm9ybWFsIGJlZm9yZSB0aGUgbWF4aW11bSB3YWl0IHRpbWUgaGFzCiMgZXhwaXJlcwpTVEVBRFlfU1RBVEVfV0lORE9XPSR7U1RFQURZX1NUQVRFX1dJTkRPVzotNjB9CgojIERlZmF1bHQgc3RlYWR5LXN0YXRlIGFsbG93cyBhbnkgcG9kIGNvdW50IHRvIGJlICJzdGVhZHkgc3RhdGUiCiMgSW5jcmVhc2luZyB0aGlzIHdpbGwgc2tpcCBhbnkgc3RlYWR5LXN0YXRlIGNoZWNrcyB1bnRpbCB0aGUgY291bnQgcmlzZXMgYWJvdmUKIyB0aGlzIG51bWJlciB0byBhdm9pZCBmYWxzZSBwb3NpdGl2ZXMgaWYgdGhlcmUgYXJlIHNvbWUgcGVyaW9kcyB3aGVyZSB0aGUKIyBjb3VudCBkb2Vzbid0IGluY3JlYXNlIGJ1dCB3ZSBrbm93IHdlIGNhbid0IGJlIGF0IHN0ZWFkeS1zdGF0ZSB5ZXQuClNURUFEWV9TVEFURV9NSU5JTVVNPSR7U1RFQURZX1NUQVRFX01JTklNVU06LTB9CgojIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjCgpLVUJFTEVUX0NQVV9TVEFURT0vdmFyL2xpYi9rdWJlbGV0L2NwdV9tYW5hZ2VyX3N0YXRlCkZVTExfQ1BVX1NUQVRFPS9zeXMvZnMvY2dyb3VwL2NwdXNldC9jcHVzZXQuY3B1cwp1bnJlc3RyaWN0ZWRDcHVzZXQoKSB7CiAgbG9jYWwgY3B1cwogIGlmIFtbIC1lICRLVUJFTEVUX0NQVV9TVEFURSBdXTsgdGhlbgogICAgICBjcHVzPSQoanEgLXIgJy5kZWZhdWx0Q3B1U2V0JyA8JEtVQkVMRVRfQ1BVX1NUQVRFKQogIGZpCiAgaWYgW1sgLXogJGNwdXMgXV07IHRoZW4KICAgICMgZmFsbCBiYWNrIHRvIHVzaW5nIGFsbCBjcHVzIGlmIHRoZSBrdWJlbGV0IHN0YXRlIGlzIG5vdCBjb25maWd1cmVkIHlldAogICAgW1sgLWUgJEZVTExfQ1BVX1NUQVRFIF1dIHx8IHJldHVybiAxCiAgICBjcHVzPSQoPCRGVUxMX0NQVV9TVEFURSkKICBmaQogIGVjaG8gJGNwdXMKfQoKcmVzdHJpY3RlZENwdXNldCgpIHsKICBmb3IgYXJnIGluICQoPC9wcm9jL2NtZGxpbmUpOyBkbwogICAgaWYgW1sgJGFyZyA9fiBec3lzdGVtZC5jcHVfYWZmaW5pdHk9IF1dOyB0aGVuCiAgICAgIGVjaG8gJHthcmcjKj19CiAgICAgIHJldHVybiAwCiAgICBmaQogIGRvbmUKICByZXR1cm4gMQp9CgpyZXNldEFmZmluaXR5KCkgewogIGxvY2FsIGNwdXNldD0iJDEiCiAgbG9jYWwgZmFpbGNvdW50PTAKICBsb2NhbCBzdWNjZXNzY291bnQ9MAogIGxvZ2dlciAiUmVjb3Zlcnk6IFNldHRpbmcgQ1BVIGFmZmluaXR5IGZvciBjcml0aWNhbCBwcm9jZXNzZXMgXCIkQ1JJVElDQUxfUFJPQ0VTU0VTXCIgdG8gJGNwdXNldCIKICBmb3IgcHJvYyBpbiAkQ1JJVElDQUxfUFJPQ0VTU0VTOyBkbwogICAgbG9jYWwgcGlkcz0iJChwZ3JlcCAkcHJvYykiCiAgICBmb3IgcGlkIGluICRwaWRzOyBkbwogICAgICBsb2NhbCB0YXNrc2V0T3V0cHV0CiAgICAgIHRhc2tzZXRPdXRwdXQ9IiQodGFza3NldCAtYXBjICIkY3B1c2V0IiAkcGlkIDI+JjEpIgogICAgICBpZiBbWyAkPyAtbmUgMCBdXTsgdGhlbgogICAgICAgIGVjaG8gIkVSUk9SOiAkdGFza3NldE91dHB1dCIKICAgICAgICAoKGZhaWxjb3VudCsrKSkKICAgICAgZWxzZQogICAgICAgICgoc3VjY2Vzc2NvdW50KyspKQogICAgICBmaQogICAgZG9uZQogIGRvbmUKICBsb2dnZXIgIlJlY292ZXJ5OiBSZS1hZmZpbmVkICRzdWNjZXNzY291bnQgcGlkcyBzdWNjZXNzZnVsbHkiCiAgaWYgW1sgJGZhaWxjb3VudCAtZ3QgMCBdXTsgdGhlbgogICAgbG9nZ2VyICJSZWNvdmVyeTogRmFpbGVkIHRvIHJlLWFmZmluZSAkZmFpbGNvdW50IHByb2Nlc3NlcyIKICAgIHJldHVybiAxCiAgZmkKfQoKc2V0VW5yZXN0cmljdGVkKCkgewogIGxvZ2dlciAiUmVjb3Zlcnk6IFNldHRpbmcgY3JpdGljYWwgc3lzdGVtIHByb2Nlc3NlcyB0byBoYXZlIHVucmVzdHJpY3RlZCBDUFUgYWNjZXNzIgogIHJlc2V0QWZmaW5pdHkgIiQodW5yZXN0cmljdGVkQ3B1c2V0KSIKfQoKc2V0UmVzdHJpY3RlZCgpIHsKICBsb2dnZXIgIlJlY292ZXJ5OiBSZXNldHRpbmcgY3JpdGljYWwgc3lzdGVtIHByb2Nlc3NlcyBiYWNrIHRvIG5vcm1hbGx5IHJlc3RyaWN0ZWQgYWNjZXNzIgogIHJlc2V0QWZmaW5pdHkgIiQocmVzdHJpY3RlZENwdXNldCkiCn0KCmN1cnJlbnRBZmZpbml0eSgpIHsKICBsb2NhbCBwaWQ9IiQxIgogIHRhc2tzZXQgLXBjICRwaWQgfCBhd2sgLUYnOiAnICd7cHJpbnQgJDJ9Jwp9Cgp3aXRoaW4oKSB7CiAgbG9jYWwgbGFzdD0kMSBjdXJyZW50PSQyIHRocmVzaG9sZD0kMwogIGxvY2FsIGRlbHRhPTAgcGNoYW5nZQogIGRlbHRhPSQoKCBjdXJyZW50IC0gbGFzdCApKQogIGlmIFtbICRjdXJyZW50IC1lcSAkbGFzdCBdXTsgdGhlbgogICAgcGNoYW5nZT0wCiAgZWxpZiBbWyAkbGFzdCAtZXEgMCBdXTsgdGhlbgogICAgcGNoYW5nZT0xMDAwMDAwCiAgZWxzZQogICAgcGNoYW5nZT0kKCggKCAkZGVsdGEgKiAxMDApIC8gbGFzdCApKQogIGZpCiAgZWNobyAtbiAibGFzdDokbGFzdCBjdXJyZW50OiRjdXJyZW50IGRlbHRhOiRkZWx0YSBwY2hhbmdlOiR7cGNoYW5nZX0lOiAiCiAgbG9jYWwgYWJzb2x1dGUgbGltaXQKICBjYXNlICR0aHJlc2hvbGQgaW4KICAgIColKQogICAgICBhYnNvbHV0ZT0ke3BjaGFuZ2UjIy19ICMgYWJzb2x1dGUgdmFsdWUKICAgICAgbGltaXQ9JHt0aHJlc2hvbGQlJSV9CiAgICAgIDs7CiAgICAqKQogICAgICBhYnNvbHV0ZT0ke2RlbHRhIyMtfSAjIGFic29sdXRlIHZhbHVlCiAgICAgIGxpbWl0PSR0aHJlc2hvbGQKICAgICAgOzsKICBlc2FjCiAgaWYgW1sgJGFic29sdXRlIC1sZSAkbGltaXQgXV07IHRoZW4KICAgIGVjaG8gIndpdGhpbiAoKy8tKSR0aHJlc2hvbGQiCiAgICByZXR1cm4gMAogIGVsc2UKICAgIGVjaG8gIm91dHNpZGUgKCsvLSkkdGhyZXNob2xkIgogICAgcmV0dXJuIDEKICBmaQp9CgpzdGVhZHlzdGF0ZSgpIHsKICBsb2NhbCBsYXN0PSQxIGN1cnJlbnQ9JDIKICBpZiBbWyAkbGFzdCAtbHQgJFNURUFEWV9TVEFURV9NSU5JTVVNIF1dOyB0aGVuCiAgICBlY2hvICJsYXN0OiRsYXN0IGN1cnJlbnQ6JGN1cnJlbnQgV2FpdGluZyB0byByZWFjaCAkU1RFQURZX1NUQVRFX01JTklNVU0gYmVmb3JlIGNoZWNraW5nIGZvciBzdGVhZHktc3RhdGUiCiAgICByZXR1cm4gMQogIGZpCiAgd2l0aGluICRsYXN0ICRjdXJyZW50ICRTVEVBRFlfU1RBVEVfVEhSRVNIT0xECn0KCndhaXRGb3JSZWFkeSgpIHsKICBsb2dnZXIgIlJlY292ZXJ5OiBXYWl0aW5nICR7TUFYSU1VTV9XQUlUX1RJTUV9cyBmb3IgdGhlIGluaXRpYWxpemF0aW9uIHRvIGNvbXBsZXRlIgogIGxvY2FsIGxhc3RTeXN0ZW1kQ3B1c2V0PSIkKGN1cnJlbnRBZmZpbml0eSAxKSIKICBsb2NhbCBsYXN0RGVzaXJlZENwdXNldD0iJCh1bnJlc3RyaWN0ZWRDcHVzZXQpIgogIGxvY2FsIHQ9MCBzPTEwCiAgbG9jYWwgbGFzdENjb3VudD0wIGNjb3VudD0wIHN0ZWFkeVN0YXRlVGltZT0wCiAgd2hpbGUgW1sgJHQgLWx0ICRNQVhJTVVNX1dBSVRfVElNRSBdXTsgZG8KICAgIHNsZWVwICRzCiAgICAoKHQgKz0gcykpCiAgICAjIFJlLWNoZWNrIHRoZSBjdXJyZW50IGFmZmluaXR5IG9mIHN5c3RlbWQsIGluIGNhc2Ugc29tZSBvdGhlciBwcm9jZXNzIGhhcyBjaGFuZ2VkIGl0CiAgICBsb2NhbCBzeXN0ZW1kQ3B1c2V0PSIkKGN1cnJlbnRBZmZpbml0eSAxKSIKICAgICMgUmUtY2hlY2sgdGhlIHVucmVzdHJpY3RlZCBDcHVzZXQsIGFzIHRoZSBhbGxvd2VkIHNldCBvZiB1bnJlc2VydmVkIGNvcmVzIG1heSBjaGFuZ2UgYXMgcG9kcyBhcmUgYXNzaWduZWQgdG8gY29yZXMKICAgIGxvY2FsIGRlc2lyZWRDcHVzZXQ9IiQodW5yZXN0cmljdGVkQ3B1c2V0KSIKICAgIGlmIFtbICRzeXN0ZW1kQ3B1c2V0ICE9ICRsYXN0U3lzdGVtZENwdXNldCB8fCAkbGFzdERlc2lyZWRDcHVzZXQgIT0gJGRlc2lyZWRDcHVzZXQgXV07IHRoZW4KICAgICAgcmVzZXRBZmZpbml0eSAiJGRlc2lyZWRDcHVzZXQiCiAgICAgIGxhc3RTeXN0ZW1kQ3B1c2V0PSIkKGN1cnJlbnRBZmZpbml0eSAxKSIKICAgICAgbGFzdERlc2lyZWRDcHVzZXQ9IiRkZXNpcmVkQ3B1c2V0IgogICAgZmkKCiAgICAjIERldGVjdCBzdGVhZHktc3RhdGUgcG9kIGNvdW50CiAgICBjY291bnQ9JChjcmljdGwgcHMgfCB3YyAtbCkKICAgIGlmIHN0ZWFkeXN0YXRlICRsYXN0Q2NvdW50ICRjY291bnQ7IHRoZW4KICAgICAgKChzdGVhZHlTdGF0ZVRpbWUgKz0gcykpCiAgICAgIGVjaG8gIlN0ZWFkeS1zdGF0ZSBmb3IgJHtzdGVhZHlTdGF0ZVRpbWV9cy8ke1NURUFEWV9TVEFURV9XSU5ET1d9cyIKICAgICAgaWYgW1sgJHN0ZWFkeVN0YXRlVGltZSAtZ2UgJFNURUFEWV9TVEFURV9XSU5ET1cgXV07IHRoZW4KICAgICAgICBsb2dnZXIgIlJlY292ZXJ5OiBTdGVhZHktc3RhdGUgKCsvLSAkU1RFQURZX1NUQVRFX1RIUkVTSE9MRCkgZm9yICR7U1RFQURZX1NUQVRFX1dJTkRPV31zOiBEb25lIgogICAgICAgIHJldHVybiAwCiAgICAgIGZpCiAgICBlbHNlCiAgICAgIGlmIFtbICRzdGVhZHlTdGF0ZVRpbWUgLWd0IDAgXV07IHRoZW4KICAgICAgICBlY2hvICJSZXNldHRpbmcgc3RlYWR5LXN0YXRlIHRpbWVyIgogICAgICAgIHN0ZWFkeVN0YXRlVGltZT0wCiAgICAgIGZpCiAgICBmaQogICAgbGFzdENjb3VudD0kY2NvdW50CiAgZG9uZQogIGxvZ2dlciAiUmVjb3Zlcnk6IFJlY292ZXJ5IENvbXBsZXRlIFRpbWVvdXQiCn0KCm1haW4oKSB7CiAgaWYgISB1bnJlc3RyaWN0ZWRDcHVzZXQgPiYvZGV2L251bGw7IHRoZW4KICAgIGxvZ2dlciAiUmVjb3Zlcnk6IE5vIHVucmVzdHJpY3RlZCBDcHVzZXQgY291bGQgYmUgZGV0ZWN0ZWQiCiAgICByZXR1cm4gMQogIGZpCgogIGlmICEgcmVzdHJpY3RlZENwdXNldCA+Ji9kZXYvbnVsbDsgdGhlbgogICAgbG9nZ2VyICJSZWNvdmVyeTogTm8gcmVzdHJpY3RlZCBDcHVzZXQgaGFzIGJlZW4gY29uZmlndXJlZC4gIFdlIGFyZSBhbHJlYWR5IHJ1bm5pbmcgdW5yZXN0cmljdGVkLiIKICAgIHJldHVybiAwCiAgZmkKCiAgIyBFbnN1cmUgd2UgcmVzZXQgdGhlIENQVSBhZmZpbml0eSB3aGVuIHdlIGV4aXQgdGhpcyBzY3JpcHQgZm9yIGFueSByZWFzb24KICAjIFRoaXMgd2F5IGVpdGhlciBhZnRlciB0aGUgdGltZXIgZXhwaXJlcyBvciBhZnRlciB0aGUgcHJvY2VzcyBpcyBpbnRlcnJ1cHRlZAogICMgdmlhIF5DIG9yIFNJR1RFUk0sIHdlIHJldHVybiB0aGluZ3MgYmFjayB0byB0aGUgd2F5IHRoZXkgc2hvdWxkIGJlLgogIHRyYXAgc2V0UmVzdHJpY3RlZCBFWElUCgogIGxvZ2dlciAiUmVjb3Zlcnk6IFJlY292ZXJ5IE1vZGUgU3RhcnRpbmciCiAgc2V0VW5yZXN0cmljdGVkCiAgd2FpdEZvclJlYWR5Cn0KCmlmIFtbICIke0JBU0hfU09VUkNFWzBdfSIgPSAiJHswfSIgXV07IHRoZW4KICBtYWluICIke0B9IgogIGV4aXQgJD8KZmkK
+                                          mode: 493
+                                          path: /usr/local/bin/accelerated-container-startup.sh
+                                systemd:
+                                    units:
+                                        - contents: |
+                                            [Unit]
+                                            Description=Unlocks more CPUs for critical system processes during container startup
+
+                                            [Service]
+                                            Type=simple
+                                            ExecStart=/usr/local/bin/accelerated-container-startup.sh
+
+                                            # Maximum wait time is 600s = 10m:
+                                            Environment=MAXIMUM_WAIT_TIME=600
+
+                                            # Steady-state threshold = 2%
+                                            # Allowed values:
+                                            #  4  - absolute pod count (+/-)
+                                            #  4% - percent change (+/-)
+                                            #  -1 - disable the steady-state check
+                                            # Note: '%' must be escaped as '%%' in systemd unit files
+                                            Environment=STEADY_STATE_THRESHOLD=2%%
+
+                                            # Steady-state window = 120s
+                                            # If the running pod count stays within the given threshold for this time
+                                            # period, return CPU utilization to normal before the maximum wait time has
+                                            # expires
+                                            Environment=STEADY_STATE_WINDOW=120
+
+                                            # Steady-state minimum = 40
+                                            # Increasing this will skip any steady-state checks until the count rises above
+                                            # this number to avoid false positives if there are some periods where the
+                                            # count doesn't increase but we know we can't be at steady-state yet.
+                                            Environment=STEADY_STATE_MINIMUM=40
+
+                                            [Install]
+                                            WantedBy=multi-user.target
+                                          enabled: true
+                                          name: accelerated-container-startup.service
+                                        - contents: |
+                                            [Unit]
+                                            Description=Unlocks more CPUs for critical system processes during container shutdown
+                                            DefaultDependencies=no
+
+                                            [Service]
+                                            Type=simple
+                                            ExecStart=/usr/local/bin/accelerated-container-startup.sh
+
+                                            # Maximum wait time is 600s = 10m:
+                                            Environment=MAXIMUM_WAIT_TIME=600
+
+                                            # Steady-state threshold
+                                            # Allowed values:
+                                            #  4  - absolute pod count (+/-)
+                                            #  4% - percent change (+/-)
+                                            #  -1 - disable the steady-state check
+                                            # Note: '%' must be escaped as '%%' in systemd unit files
+                                            Environment=STEADY_STATE_THRESHOLD=-1
+
+                                            # Steady-state window = 60s
+                                            # If the running pod count stays within the given threshold for this time
+                                            # period, return CPU utilization to normal before the maximum wait time has
+                                            # expires
+                                            Environment=STEADY_STATE_WINDOW=60
+
+                                            [Install]
+                                            WantedBy=shutdown.target reboot.target halt.target
+                                          enabled: true
+                                          name: accelerated-container-shutdown.service
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: common-cnfdt16-mon-offload-policy
+    namespace: common-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: common-cnfdt16-mon-offload-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: v1
+                        data:
+                            config.yaml: |
+                                grafana:
+                                  enabled: false
+                                alertmanagerMain:
+                                  enabled: false
+                        kind: ConfigMap
+                        metadata:
+                            name: cluster-monitoring-config
+                            namespace: openshift-monitoring
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: common-cnfdt16-log-sub-policy
+    namespace: common-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: common-cnfdt16-log-sub-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: v1
+                        kind: Namespace
+                        metadata:
+                            annotations:
+                                workload.openshift.io/allowed: management
+                            name: openshift-logging
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1
+                        kind: OperatorGroup
+                        metadata:
+                            name: cluster-logging
+                            namespace: openshift-logging
+                        spec:
+                            targetNamespaces:
+                                - openshift-logging
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1alpha1
+                        kind: Subscription
+                        metadata:
+                            name: cluster-logging
+                            namespace: openshift-logging
+                        spec:
+                            channel: "5.0"
+                            name: cluster-logging
+                            source: redhat-operators
+                            sourceNamespace: openshift-marketplace
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+    name: common-cnfdt16-placementbinding
+    namespace: common-cnfdt16
+placementRef:
+    name: common-cnfdt16-placementrules
+    kind: PlacementRule
+    apiGroup: apps.open-cluster-management.io
+subjects:
+    - name: common-cnfdt16-sriov-sub-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: common-cnfdt16-ptp-sub-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: common-cnfdt16-pao-sub-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: common-cnfdt16-log-sub-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: common-cnfdt16-storage-sub-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+    - name: common-cnfdt16-mon-offload-policy
+      kind: Policy
+      apiGroup: policy.open-cluster-management.io
+
+---
+apiVersion: apps.open-cluster-management.io/v1
+kind: PlacementRule
+metadata:
+    name: common-cnfdt16-placementrules
+    namespace: common-cnfdt16
+spec:
+    clusterSelector:
+        matchExpressions:
+            - key: common-cnfdt16
+              operator: In
+              values:
+                - "true"
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: common-cnfdt16-pao-sub-policy
+    namespace: common-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: common-cnfdt16-pao-sub-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1alpha1
+                        kind: Subscription
+                        metadata:
+                            name: performance-addon-operator
+                            namespace: openshift-performance-addon-operator
+                        spec:
+                            channel: "4.8"
+                            name: performance-addon-operator
+                            source: performance-addon-operator
+                            sourceNamespace: openshift-marketplace
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: v1
+                        kind: Namespace
+                        metadata:
+                            annotations:
+                                workload.openshift.io/allowed: management
+                            labels:
+                                openshift.io/cluster-monitoring: "true"
+                            name: openshift-performance-addon-operator
+                        spec: {}
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1
+                        kind: OperatorGroup
+                        metadata:
+                            name: performance-addon-operator
+                            namespace: openshift-performance-addon-operator
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1alpha1
+                        kind: CatalogSource
+                        metadata:
+                            annotations:
+                                target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
+                            name: performance-addon-operator
+                            namespace: openshift-marketplace
+                        spec:
+                            displayName: Openshift Performance Addon Operator
+                            icon:
+                                base64data: ""
+                                mediatype: ""
+                            image: quay.io/openshift-kni/performance-addon-operator-index:4.8-snapshot
+                            publisher: Red Hat
+                            sourceType: grpc
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: common-cnfdt16-sriov-sub-policy
+    namespace: common-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: common-cnfdt16-sriov-sub-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1alpha1
+                        kind: Subscription
+                        metadata:
+                            name: sriov-network-operator-subscription
+                            namespace: openshift-sriov-network-operator
+                        spec:
+                            channel: "4.9"
+                            name: sriov-network-operator
+                            source: redhat-operators
+                            sourceNamespace: openshift-marketplace
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: v1
+                        kind: Namespace
+                        metadata:
+                            annotations:
+                                workload.openshift.io/allowed: management
+                            labels:
+                                openshift.io/run-level: "1"
+                            name: openshift-sriov-network-operator
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1
+                        kind: OperatorGroup
+                        metadata:
+                            name: sriov-network-operators
+                            namespace: openshift-sriov-network-operator
+                        spec:
+                            targetNamespaces:
+                                - openshift-sriov-network-operator
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: common-cnfdt16-storage-sub-policy
+    namespace: common-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: common-cnfdt16-storage-sub-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: v1
+                        kind: Namespace
+                        metadata:
+                            annotations:
+                                workload.openshift.io/allowed: management
+                            name: openshift-local-storage
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1
+                        kind: OperatorGroup
+                        metadata:
+                            name: openshift-local-storage
+                            namespace: openshift-local-storage
+                        spec:
+                            targetNamespaces:
+                                - openshift-local-storage
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1alpha1
+                        kind: Subscription
+                        metadata:
+                            name: local-storage-operator
+                            namespace: openshift-local-storage
+                        spec:
+                            channel: "4.9"
+                            installPlanApproval: Automatic
+                            name: local-storage-operator
+                            source: redhat-operators
+                            sourceNamespace: openshift-marketplace
+
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+    annotations:
+        policy.open-cluster-management.io/categories: CM Configuration Management
+        policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+        policy.open-cluster-management.io/standards: NIST SP 800-53
+    name: common-cnfdt16-ptp-sub-policy
+    namespace: common-cnfdt16
+spec:
+    remediationAction: enforce
+    disabled: false
+    policy-templates:
+        - objectDefinition:
+            apiVersion: policy.open-cluster-management.io/v1
+            kind: ConfigurationPolicy
+            metadata:
+                name: common-cnfdt16-ptp-sub-policy-config
+            spec:
+                remediationAction: enforce
+                severity: low
+                namespaceselector:
+                    exclude:
+                        - kube-*
+                    include:
+                        - '*'
+                object-templates:
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1alpha1
+                        kind: Subscription
+                        metadata:
+                            name: ptp-operator-subscription
+                            namespace: openshift-ptp
+                        spec:
+                            channel: "4.9"
+                            name: ptp-operator
+                            source: redhat-operators
+                            sourceNamespace: openshift-marketplace
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: v1
+                        kind: Namespace
+                        metadata:
+                            annotations:
+                                workload.openshift.io/allowed: management
+                            labels:
+                                openshift.io/cluster-monitoring: "true"
+                            name: openshift-ptp
+                    - complianceType: mustonlyhave
+                      objectDefinition:
+                        apiVersion: operators.coreos.com/v1
+                        kind: OperatorGroup
+                        metadata:
+                            name: ptp-operators
+                            namespace: openshift-ptp
+                        spec:
+                            targetNamespaces:
+                                - openshift-ptp
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    name: common-cnfdt16
+  name: common-cnfdt16
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    name: group-cnfdt16
+  name: group-cnfdt16
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    name: cnfdt16-policies
+  name: cnfdt16-policies
+
