@@ -32,49 +32,54 @@ spec:
       spec:
       # Changing the channel value will upgrade/downgrade the operator installed version.
         channel: "4.9"
+        source: redhat-operators
     - fileName: PaoSubscriptionNS.yaml
       policyName: "pao-sub-policy"
     - fileName: PaoSubscriptionOperGroup.yaml
       policyName: "pao-sub-policy"
-    - fileName: PaoSubscriptionCatalogSource.yaml
-      policyName: "pao-sub-policy"
-      spec:
-        image: quay.io/openshift-kni/performance-addon-operator-index:4.9-snapshot
+    # - fileName: PaoSubscriptionCatalogSource.yaml
+    #   policyName: "pao-sub-policy"
+    #   spec:
+    #     image: quay.io/openshift-kni/performance-addon-operator-index:4.8-snapshot
     - fileName: ClusterLogOperGroup.yaml
       policyName: "log-sub-policy"
     - fileName: ClusterLogSubscription.yaml
       policyName: "log-sub-policy"
+      spec:
+        channel: "stable"
     - fileName: StorageNS.yaml
       policyName: "storage-sub-policy"
     - fileName: StorageOperGroup.yaml
       policyName: "storage-sub-policy"
     - fileName: StorageSubscription.yaml
       policyName: "storage-sub-policy"
+    #################################################################################
     # These CRs are in support of installation from a disconnected registry
-    - fileName: ClusterLogCatSource.yaml
-      policyName: "log-sub-policy"
-      spec:
-        image: registry.example.com:5000/olm/far-edge-clo:latest
-    - fileName: PtpCatSource.yaml
-      policyName: "ptp-sub-policy"
-      spec:
-        image: registry.example.com:5000/olm/far-edge-ptp:latest
-    - fileName: StorageCatSource.yaml
-      policyName: "storage-sub-policy"
-      spec:
-        image: registry.example.com:5000/olm/far-edge-lso:latest
-    - fileName: SriovCatSource.yaml
-      policyName: "sriov-sub-policy"
-      spec:
-        image: registry.example.com:5000/olm/far-edge-sriov:latest
-    - fileName: DisconnectedICSP.yaml
-      policyName: "disc-icsp-policy"
-      spec:
-        repositoryDigestMirrors:
-        - mirrors:
-          - registry.redhat.com:5000
-          source: registry.redhat.io
-    - fileName: OperatorHub.yaml
-      policyName: "oper-hub-policy"
+    # Lab is running in a connected environment. No need for disconnected configuration
+#    - fileName: ClusterLogCatSource.yaml
+#      policyName: "log-sub-policy"
+#      spec:
+#        image: registry.example.com:5000/olm/far-edge-clo:latest
+#    - fileName: PtpCatSource.yaml
+#      policyName: "ptp-sub-policy"
+#      spec:
+#        image: registry.example.com:5000/olm/far-edge-ptp:latest
+#    - fileName: StorageCatSource.yaml
+#      policyName: "storage-sub-policy"
+#      spec:
+#        image: registry.example.com:5000/olm/far-edge-lso:latest
+#    - fileName: SriovCatSource.yaml
+#      policyName: "sriov-sub-policy"
+#      spec:
+#        image: registry.example.com:5000/olm/far-edge-sriov:latest
+#    - fileName: DisconnectedICSP.yaml
+#      policyName: "disc-icsp-policy"
+#      spec:
+#        repositoryDigestMirrors:
+#        - mirrors:
+#          - registry.redhat.com:5000
+#          source: registry.redhat.io
+#    - fileName: OperatorHub.yaml
+#      policyName: "oper-hub-policy"
     - fileName: ReduceMonitoringFootprint.yaml
       policyName: "mon-offload-policy"
