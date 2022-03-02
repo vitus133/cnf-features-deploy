@@ -1,0 +1,10 @@
+FROM openshift/origin-release:golang-1.16
+ENV PKG_ROOT=cnf-features-deploy
+ENV PKG_PATH=/go/src/$PKG_ROOT
+RUN mkdir -p $PKG_PATH
+WORKDIR $PKG_PATH/
+ARG TAR_NAME
+ADD $TAR_NAME  $PKG_PATH/
+ENV HOOK_ROOT=$PKG_PATH/ztp/resource-generator/src
+WORKDIR $HOOK_ROOT
+RUN go build -mod=vendor -o /hook

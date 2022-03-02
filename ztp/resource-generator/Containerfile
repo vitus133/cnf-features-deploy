@@ -11,6 +11,7 @@ RUN tar -xvf $TAR_NAME ztp  && \
     rm $TAR_NAME && \
     chown -R 1001:1001 $WD
 COPY --from=policygen  /PolicyGenerator $WD/ztp/ztp-policy-generator/kustomize/plugin/policyGenerator/v1/policygenerator
+COPY --from=hook /hook $WD/
 WORKDIR $WD/ztp/resource-generator/src
 USER 1001
 
