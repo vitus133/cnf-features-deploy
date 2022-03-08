@@ -153,8 +153,7 @@ class ApiResponseParser(Logger):
                 if len(self.del_list) > 0:
                     PolicyGenWrapper([self.del_path, out_del_path])
                     self.logger.debug(f"{self.del_path}, {out_del_path}")
-                    # Do not delete for real:
-                    # OcWrapper('delete', out_del_path)
+                    OcWrapper('delete', out_del_path)
                 else:
                     self.logger.debug("No objects to delete")
 
