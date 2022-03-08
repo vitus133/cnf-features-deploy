@@ -11,7 +11,7 @@ while true; do
         break
     fi
 done
-
+exit 0
 # Delete old resource version configmap if present
 if oc get configmap/rv &> /dev/null; then
     oc delete configmap/rv &> /dev/null
