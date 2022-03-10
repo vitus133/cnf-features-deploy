@@ -16,6 +16,6 @@ spec:
           command: ["/bin/bash", "pre-sync-entrypoint.sh", "policygentemplates"]
       restartPolicy: Never
   backoffLimit: 0
-  ttlSecondsAfterFinished: 60
+  # ttlSecondsAfterFinished: 60
 
 
