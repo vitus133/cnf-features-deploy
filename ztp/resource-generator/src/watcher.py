@@ -147,8 +147,14 @@ class ApiResponseParser(Logger):
 
                 # Do creates / updates
                 if len(self.upd_list) > 0:
-                    PolicyGenWrapper([self.upd_path, out_upd_path])
-                    OcWrapper('apply', out_upd_path)
+                    if resourcename == "siteconfigs":
+                        PolicyGenWrapper([self.upd_path, out_upd_path])
+                        OcWrapper('apply', out_upd_path)
+                    else:
+                        self.logger.debug("Policies updated...")
+                        PolicyGenWrapper([self.upd_path, out_upd_path])
+                        OcWrapper('apply', out_upd_path)
+
                 else:
                     self.logger.debug("No objects to update")
 
