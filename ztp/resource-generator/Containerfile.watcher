@@ -1,0 +1,7 @@
+FROM quay.io/vgrinber/ztp-site-generator:latest
+USER root
+ENV WD=/usr/src/hook
+WORKDIR $WD
+COPY src/watcher.py $WD/
+USER 1001
+

@@ -48,3 +48,6 @@ build: ## Build the ZTP site generator image
 	podman build --build-arg TAR_NAME=${TAR_NAME} -t ztp-site-generator:latest -f Containerfile; \
 	rm ${TAR_NAME} && \
 	podman push ztp-site-generator:latest ${HOOK}
+watcher: ## Build the ZTP site generator image
+	podman build --build-arg TAR_NAME=${TAR_NAME} -t ztp-site-generator:latest -f Containerfile.watcher; \
+	podman push ztp-site-generator:latest ${HOOK}

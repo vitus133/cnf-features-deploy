@@ -15,7 +15,7 @@ WORKDIR $POLGEN_ROOT
 RUN go build -mod=vendor -o /PolicyGenerator
 
 # Container image
-FROM quay.io/redhat_emp1/ztp-base:latest
+FROM quay.io/vgrinber/ztp-base:latest
 USER root
 ENV WD=/usr/src/hook
 RUN mkdir $WD
