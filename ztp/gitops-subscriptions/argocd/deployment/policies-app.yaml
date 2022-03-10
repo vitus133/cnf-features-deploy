@@ -17,8 +17,8 @@ spec:
     directory:
       recurse: true
     path: ztp/gitops-subscriptions/argocd/resource-hook-example/policygentemplates
-    repoURL: https://github.com/openshift-kni/cnf-features-deploy
-    targetRevision: master
+    repoURL: https://github.com/vitus133/cnf-features-deploy
+    targetRevision: mng-cluster-action-setup
   syncPolicy:
     automated:
       prune: true
