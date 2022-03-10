@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 import json
+from turtle import up
 import yaml
 import tempfile
 import subprocess
@@ -147,13 +148,11 @@ class ApiResponseParser(Logger):
 
                 # Do creates / updates
                 if len(self.upd_list) > 0:
+                    PolicyGenWrapper([self.upd_path, out_upd_path])
                     if resourcename == "siteconfigs":
-                        PolicyGenWrapper([self.upd_path, out_upd_path])
                         OcWrapper('apply', out_upd_path)
                     else:
-                        self.logger.debug("Policies updated...")
-                        PolicyGenWrapper([self.upd_path, out_upd_path])
-                        OcWrapper('apply', out_upd_path)
+                        self._reconcile_policy_mod(out_upd_path)
 
                 else:
                     self.logger.debug("No objects to update")
@@ -173,6 +172,13 @@ class ApiResponseParser(Logger):
                 if not debug:
                     shutil.rmtree(self.tmpdir)
                     shutil.rmtree(out_tmpdir)
+
+    def _reconcile_policy_mod(self, upd_path):
+        pol_list = os.listdir(upd_path)
+        for item in pol_list:
+            with open(os.path.join(upd_path, item), "r") as f:
+                pl = list(yaml.safe_load_all(f))
+            self.logger.debug(pl)
 
     # Note: this solution is limited to SNO (one cluster per siteconfig).
     def _handle_site_deletions(self) -> bool:
