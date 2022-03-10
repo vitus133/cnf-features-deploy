@@ -91,6 +91,9 @@ class OcWrapper(Logger):
         try:
             status = None
             for f in self._find_files(path):
+                with open(f, "r") as pl:
+                    txt = pl.read()
+                self.logger.debug(txt)
                 cmd = ["oc", f"{action}", "-f", f"{f}"]
                 self.logger.debug(cmd)
                 status = subprocess.run(
