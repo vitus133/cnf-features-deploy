@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: test-sno-policies
+  name: sno-vg-policies
   labels:
-    name: test-sno-policies
+    name: sno-vg-policies
 ---
 apiVersion: ran.openshift.io/v1
 kind: PolicyGenTemplate
