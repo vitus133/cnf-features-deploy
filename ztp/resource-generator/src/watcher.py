@@ -178,13 +178,28 @@ class ApiResponseParser(Logger):
             with open(os.path.join(out_upd_path, item), "r") as f:
                 opl = list(yaml.safe_load_all(f))
             self.logger.debug(opl)
-        # Find PGT namespaces 
+        # Find PGT namespaces and existing policies
+        current_policies = {} 
         for item in self._find_files(self.upd_path):
             with open(os.path.join(out_upd_path, item), "r") as f:
                 ipl = list(yaml.safe_load_all(f))
-            self.logger.debug(ipl)
+            for pgt in ipl:
+                ns = pgt.get("metadata", {}).get("namespace")
+                cmd = ["oc", "get", "policy", "-n", f"{ns}", "-o", "json"]
+                self.logger.debug(cmd)
+                status = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=True)
+                try:
+                    result = json.loads(status.stdout.decode())
+                    current_policies[ns] = result
+                except Exception as e:
+                    self.logger.exception(f"failed to get policies: {e}")
+                    exit(1)
+        self.logger.debug(current_policies)
 
-    
     def _find_files(self, root):
         for d, dirs, files in os.walk(root):
             for f in files:
