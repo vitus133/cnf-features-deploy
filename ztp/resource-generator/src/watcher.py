@@ -172,11 +172,18 @@ class ApiResponseParser(Logger):
                     shutil.rmtree(self.tmpdir)
                     shutil.rmtree(out_tmpdir)
 
-    def _reconcile_policy_mod(self, upd_path):
-        for item in self._find_files(upd_path):
-            with open(os.path.join(upd_path, item), "r") as f:
-                pl = list(yaml.safe_load_all(f))
-            self.logger.debug(pl)
+    def _reconcile_policy_mod(self, out_upd_path):
+        # Find policies produced by policygen
+        for item in self._find_files(out_upd_path):
+            with open(os.path.join(out_upd_path, item), "r") as f:
+                opl = list(yaml.safe_load_all(f))
+            self.logger.debug(opl)
+        # Find PGT namespaces 
+        for item in self._find_files(self.upd_path):
+            with open(os.path.join(out_upd_path, item), "r") as f:
+                ipl = list(yaml.safe_load_all(f))
+            self.logger.debug(ipl)
+
     
     def _find_files(self, root):
         for d, dirs, files in os.walk(root):
