@@ -8,11 +8,11 @@ metadata:
 apiVersion: ran.openshift.io/v1
 kind: PolicyGenTemplate
 metadata:
-  name: "test-sno"
-  namespace: "test-sno-policies"
+  name: "sno-vg"
+  namespace: "sno-vg-policies"
 spec:
   bindingRules:
-    sites: "test-sno"
+    sites: "sno-vg"
   mcp: "master"
   sourceFiles:
     # - fileName: SriovNetwork.yaml
