@@ -4,7 +4,6 @@ import os
 import shutil
 import sys
 import json
-from turtle import up
 import yaml
 import tempfile
 import subprocess
