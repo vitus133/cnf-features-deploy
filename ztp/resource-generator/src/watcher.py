@@ -173,11 +173,16 @@ class ApiResponseParser(Logger):
                     shutil.rmtree(out_tmpdir)
 
     def _reconcile_policy_mod(self, upd_path):
-        pol_list = os.listdir(upd_path)
-        for item in pol_list:
+        for item in self._find_files(upd_path):
             with open(os.path.join(upd_path, item), "r") as f:
                 pl = list(yaml.safe_load_all(f))
             self.logger.debug(pl)
+    
+    def _find_files(self, root):
+        for d, dirs, files in os.walk(root):
+            for f in files:
+                yield os.path.join(d, f)
+
 
     # Note: this solution is limited to SNO (one cluster per siteconfig).
     def _handle_site_deletions(self) -> bool:
