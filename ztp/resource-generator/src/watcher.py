@@ -174,11 +174,11 @@ class ApiResponseParser(Logger):
 
     def _get_policy_status(self, out_upd_path):
         # Find policies produced by policygen
-        required_policies = []
+        required_objects = []
         for item in self._find_files(out_upd_path):
             with open(os.path.join(out_upd_path, item), "r") as f:
                 opl = list(yaml.safe_load_all(f))
-            required_policies.extend([pol for pol in opl if pol.get("kind") == "Policy"])
+            required_objects.extend(opl)
         # Find PGT namespaces and existing policies
         current_policies = {} 
         for item in self._find_files(self.upd_path):
@@ -199,12 +199,14 @@ class ApiResponseParser(Logger):
                 except Exception as e:
                     self.logger.exception(f"failed to get policies: {e}")
                     exit(1)
-        return current_policies, required_policies
+        return current_policies, required_objects
 
-    def _reconcile_policies(self, current_policies, required_policies):
+    def _reconcile_policies(self, current_policies, required_objects):
+        required_policies = [o for o in required_objects if o.get("kind") == "Policy"]
         for item in required_policies:
             ns = item.get("metadata", {}).get("namespace")
             name = item.get("metadata", {}).get("name")
+            
             current = [p for p in current_policies.get(ns, {}).get(
                 "items") if p.get("metadata", {}).get("name") == name]
             msg = (f"ns={ns}, name={name}, ",
@@ -213,17 +215,20 @@ class ApiResponseParser(Logger):
             self.logger.debug(msg)
             if len(current) == 0:
                 # apply required
-                fn = tempfile.mktemp()
-                with open(fn, "w") as f:
-                    json.dump(item, f)
-                cmd = ["oc", "apply", "-f", f"{fn}"]
-                status = subprocess.run(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    check=True)
-                self.logger.debug(status.stderr + status.stdout)
-                os.unlink(fn)
+                ns_required_objects = [o for o in required_objects if o.get(
+                    "metadata", {}).get("namespace") == ns]
+                for o in ns_required_objects:
+                    fn = tempfile.mktemp()
+                    with open(fn, "w") as f:
+                        json.dump(o, f)
+                    cmd = ["oc", "apply", "-f", f"{fn}"]
+                    status = subprocess.run(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        check=True)
+                    self.logger.debug(status.stderr + status.stdout)
+                    os.unlink(fn)
 
 
     
