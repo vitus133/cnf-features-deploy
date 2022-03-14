@@ -152,10 +152,7 @@ class ApiResponseParser(Logger):
                         OcWrapper('apply', out_upd_path)
                     else:
                         current, required = self._get_policy_status(out_upd_path)
-                        self.logger.debug(current)
-                        self.logger.debug(required)
-
-
+                        self._reconcile_policies(current, required)
                 else:
                     self.logger.debug("No objects to update")
 
@@ -204,6 +201,32 @@ class ApiResponseParser(Logger):
                     exit(1)
         return current_policies, required_policies
 
+    def _reconcile_policies(self, current_policies, required_policies):
+        for item in required_policies:
+            ns = item.get("metadata", {}).get("namespace")
+            name = item.get("metadata", {}).get("name")
+            current = [p for p in current_policies.get(ns, {}).get(
+                "items") if p.get("metadata", {}).get("name") == name]
+            msg = (f"ns={ns}, name={name}, ",
+                   f"current={current}, ",
+                   f"required={item}")
+            self.logger.debug(msg)
+            if len(current) == 0:
+                # apply required
+                fn = tempfile.mktemp()
+                with open(fn, "w") as f:
+                    json.dump(item, f)
+                cmd = ["oc", "apply", "-f", f"{fn}"]
+                status = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=True)
+                self.logger.debug(status.stderr + status.stdout)
+                os.unlink(fn)
+
+
+    
     def _find_files(self, root):
         for d, dirs, files in os.walk(root):
             for f in files:
