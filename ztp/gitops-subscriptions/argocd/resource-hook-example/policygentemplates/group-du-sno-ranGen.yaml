@@ -48,11 +48,11 @@ spec:
     #       logs:
     #         type: "fluentd"
     #         fluentd: {}
-    # - fileName: MachineConfigSctp.yaml
-    #   policyName: "mc-sctp-policy"
-    #   metadata:
-    #     labels:
-    #       machineconfiguration.openshift.io/role: master
+    - fileName: MachineConfigSctp.yaml
+      policyName: "mc-sctp-policy"
+      metadata:
+        labels:
+          machineconfiguration.openshift.io/role: master
     # - fileName: MachineConfigDisableChronyd.yaml
     #   policyName: "mc-chronyd-policy"
     # - fileName: PtpConfigSlave.yaml
@@ -69,9 +69,9 @@ spec:
     #   policyName: "sriov-conf-policy"
     #   spec:
     #     disableDrain: true
-    # - fileName: MachineConfigAcceleratedStartup.yaml
-    #   policyName: "mc-accelerated-startup-policy"
-    #   metadata:
-    #     name: 04-accelerated-container-startup-master
-    #     labels:
-    #       machineconfiguration.openshift.io/role: master
+    - fileName: MachineConfigAcceleratedStartup.yaml
+      policyName: "mc-accelerated-startup-policy"
+      metadata:
+        name: 04-accelerated-container-startup-master
+        labels:
+          machineconfiguration.openshift.io/role: master
