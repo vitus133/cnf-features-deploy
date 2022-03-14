@@ -151,7 +151,10 @@ class ApiResponseParser(Logger):
                     if resourcename == "siteconfigs":
                         OcWrapper('apply', out_upd_path)
                     else:
-                        self._reconcile_policy_mod(out_upd_path)
+                        current, required = self._get_policy_status(out_upd_path)
+                        self.logger.debug(current)
+                        self.logger.debug(required)
+
 
                 else:
                     self.logger.debug("No objects to update")
@@ -172,12 +175,13 @@ class ApiResponseParser(Logger):
                     shutil.rmtree(self.tmpdir)
                     shutil.rmtree(out_tmpdir)
 
-    def _reconcile_policy_mod(self, out_upd_path):
+    def _get_policy_status(self, out_upd_path):
         # Find policies produced by policygen
+        required_policies = []
         for item in self._find_files(out_upd_path):
             with open(os.path.join(out_upd_path, item), "r") as f:
                 opl = list(yaml.safe_load_all(f))
-            self.logger.debug(opl)
+            required_policies.extend([pol for pol in opl if pol.get("kind") == "Policy"])
         # Find PGT namespaces and existing policies
         current_policies = {} 
         for item in self._find_files(self.upd_path):
@@ -198,7 +202,7 @@ class ApiResponseParser(Logger):
                 except Exception as e:
                     self.logger.exception(f"failed to get policies: {e}")
                     exit(1)
-        self.logger.debug(current_policies)
+        return current_policies, required_policies
 
     def _find_files(self, root):
         for d, dirs, files in os.walk(root):
