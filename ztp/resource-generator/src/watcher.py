@@ -151,8 +151,7 @@ class ApiResponseParser(Logger):
                     if resourcename == "siteconfigs":
                         OcWrapper('apply', out_upd_path)
                     else:
-                        current, required = self._get_policy_status(out_upd_path)
-                        self._reconcile_policies(current, required)
+                        self._reconcile_policies(out_upd_path)
                 else:
                     self.logger.debug("No objects to update")
 
@@ -173,14 +172,14 @@ class ApiResponseParser(Logger):
                     shutil.rmtree(out_tmpdir)
 
     def _get_policy_status(self, out_upd_path):
-        # Find policies produced by policygen
+        # Find objects produced by policygen for this sync
         required_objects = []
         for item in self._find_files(out_upd_path):
             with open(os.path.join(out_upd_path, item), "r") as f:
                 opl = list(yaml.safe_load_all(f))
             required_objects.extend(opl)
         # Find PGT namespaces and existing policies
-        current_policies = {} 
+        current_policies = {}
         for item in self._find_files(self.upd_path):
             with open(os.path.join(out_upd_path, item), "r") as f:
                 ipl = list(yaml.safe_load_all(f))
@@ -201,34 +200,56 @@ class ApiResponseParser(Logger):
                     exit(1)
         return current_policies, required_objects
 
-    def _reconcile_policies(self, current_policies, required_objects):
+    def _reconcile_policies(self, out_upd_path):
+        current_policies, required_objects = self._get_policy_status(out_upd_path)
         required_policies = [o for o in required_objects if o.get("kind") == "Policy"]
         for item in required_policies:
             ns = item.get("metadata", {}).get("namespace")
             name = item.get("metadata", {}).get("name")
             
-            current = [p for p in current_policies.get(ns, {}).get(
-                "items") if p.get("metadata", {}).get("name") == name]
+            current = []
+            current_policies_items = current_policies.get(ns, {}).get("items", [])
+            for i in range(len(current_policies_items)):
+                if current_policies_items[i].get("metadata", {}).get("name") == name:
+                    current.append(current_policies_items[i])
+                    del current_policies[ns]["items"][i]
+            if current_policies.get(ns) != None and len(current_policies.get(ns)) == 0:
+                del current_policies[ns]
             msg = (f"ns={ns}, name={name}, ",
                    f"current={current}, ",
                    f"required={item}")
             self.logger.debug(msg)
-            if len(current) == 0:
-                # apply required
-                ns_required_objects = [o for o in required_objects if o.get(
-                    "metadata", {}).get("namespace") == ns]
-                for o in ns_required_objects:
-                    fn = tempfile.mktemp()
-                    with open(fn, "w") as f:
-                        json.dump(o, f)
-                    cmd = ["oc", "apply", "-f", f"{fn}"]
-                    status = subprocess.run(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        check=True)
-                    self.logger.debug(status.stderr + status.stdout)
-                    os.unlink(fn)
+        # apply required and missing objects
+        if len(current) == 0:
+            ns_required_objects = [o for o in required_objects if o.get(
+                "metadata", {}).get("namespace") == ns]
+            for o in ns_required_objects:
+                fn = tempfile.mktemp()
+                with open(fn, "w") as f:
+                    json.dump(o, f)
+                cmd = ["oc", "apply", "-f", f"{fn}"]
+                status = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=True)
+                self.logger.debug(status.stderr + status.stdout)
+                os.unlink(fn)
+        # Delete remaining existing and not required policies
+        for _, v in current_policies.items():
+            for it in v.get("items", []):
+                fn = tempfile.mktemp()
+                with open(fn, "w") as f:
+                    json.dump(it, f)
+                cmd = ["oc", "delete", "-f", f"{fn}"]
+                status = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=True)
+                self.logger.debug(status.stderr + status.stdout)
+                os.unlink(fn)
+
 
 
     
