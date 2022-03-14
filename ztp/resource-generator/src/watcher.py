@@ -219,22 +219,22 @@ class ApiResponseParser(Logger):
                    f"current={current}, ",
                    f"required={item}")
             self.logger.debug(msg)
-        # apply required and missing objects
-        if len(current) == 0:
-            ns_required_objects = [o for o in required_objects if o.get(
-                "metadata", {}).get("namespace") == ns]
-            for o in ns_required_objects:
-                fn = tempfile.mktemp()
-                with open(fn, "w") as f:
-                    json.dump(o, f)
-                cmd = ["oc", "apply", "-f", f"{fn}"]
-                status = subprocess.run(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    check=True)
-                self.logger.debug(status.stderr + status.stdout)
-                os.unlink(fn)
+            # apply required and missing objects
+            if len(current) == 0:
+                ns_required_objects = [o for o in required_objects if o.get(
+                    "metadata", {}).get("namespace") == ns]
+                for o in ns_required_objects:
+                    fn = tempfile.mktemp()
+                    with open(fn, "w") as f:
+                        json.dump(o, f)
+                    cmd = ["oc", "apply", "-f", f"{fn}"]
+                    status = subprocess.run(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        check=True)
+                    self.logger.debug(status.stderr + status.stdout)
+                    os.unlink(fn)
         # Delete remaining existing and not required policies
         for _, v in current_policies.items():
             for it in v.get("items", []):
