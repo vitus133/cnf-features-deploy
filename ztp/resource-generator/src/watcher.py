@@ -9,6 +9,7 @@ import tempfile
 import subprocess
 from kubernetes import client, config
 import logging
+import jinja2
 
 
 class Logger():
@@ -249,6 +250,31 @@ class ApiResponseParser(Logger):
                     check=True)
                 self.logger.debug(status.stderr + status.stdout)
                 os.unlink(fn)
+                self.logger.debug(self._extract_enabled_policy_objects(it, "musthave", "enforce"))
+
+    """ Extract enabled policy objects by filter """
+    def _extract_enabled_policy_objects(self,
+                                        pol: dict,
+                                        compliance_type: str,
+                                        remediation_action: str):
+        spec = pol.get("spec", {})
+        # "disabled" is a required field:
+        if spec.get("disabled") != "false":
+            self.logger.debug("spec is disabled")
+            return []
+        spec_ra = spec.get("remediationAction")
+        if spec_ra is not None and spec_ra != remediation_action:
+            self.logger.debug(f"spec remediation action is {spec_ra}, but {remediation_action} was required")
+            return []
+        obj_templates = [pt.get("spec", {}).get("object-templates")
+            for pt in spec.get("policy-templates", [])]
+        
+        return  [item.get("objectDefinition:") for item in  obj_templates]
+            # if item.get("complianceType") == compliance_type and
+            #     (item.get("remediationAction") is None or 
+            #     item.get("remediationAction") == remediation_action)]
+
+
 
 
 
