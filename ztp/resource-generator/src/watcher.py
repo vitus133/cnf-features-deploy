@@ -259,9 +259,8 @@ class ApiResponseParser(Logger):
                                         remediation_action: str):
         spec = pol.get("spec", {})
         # "disabled" is a required field:
-        if spec.get("disabled") != "false":
+        if spec.get("disabled").lower() != "false":
             self.logger.debug(f"spec is disabled: {spec.get('disabled')}")
-            
             return []
         spec_ra = spec.get("remediationAction")
         if spec_ra is not None and spec_ra != remediation_action:
