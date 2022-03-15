@@ -250,7 +250,8 @@ class ApiResponseParser(Logger):
                     check=True)
                 self.logger.debug(status.stderr + status.stdout)
                 os.unlink(fn)
-                self.logger.debug(self._extract_enabled_policy_objects(it, "musthave", "enforce"))
+                mng_cluster_objects = self._extract_enabled_policy_objects(
+                    it, "musthave", "enforce")
 
     """ Extract enabled policy objects by filter """
     def _extract_enabled_policy_objects(self,
@@ -265,7 +266,11 @@ class ApiResponseParser(Logger):
             return []
         spec_ra = spec.get("remediationAction")
         if spec_ra is not None and spec_ra != remediation_action:
-            self.logger.debug(f"spec remediation action is {spec_ra}, but {remediation_action} was required")
+            msg = (f"spec remediation action is {spec_ra}, but "
+                   f"{remediation_action} was required for policy"
+                   f"{pol['metadata']['name']} in "
+                   f"{pol['metadata']['namespace']} namespace")
+            self.logger.debug(msg)
             return []
         policy_templates = spec.get("policy-templates", [])
         for template in policy_templates:
@@ -278,14 +283,6 @@ class ApiResponseParser(Logger):
                     item.get("remediationAction") == remediation_action):
                         objects.append(item.get("objectDefinition"))
         return objects
-        # obj_templates = [pt.get("spec", {}).get("object-templates")
-        #     for pt in spec.get("policy-templates", [])]
-        # self.logger.debug(obj_templates)
-        
-        # return  [item.get("objectDefinition:") for item in  obj_templates]
-            # if item.get("complianceType") == compliance_type and
-            #     (item.get("remediationAction") is None or 
-            #     item.get("remediationAction") == remediation_action)]
 
 
 
