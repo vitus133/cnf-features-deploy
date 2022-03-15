@@ -259,6 +259,7 @@ class ApiResponseParser(Logger):
                                         remediation_action: str):
         spec = pol.get("spec", {})
         self.logger.debug(spec)
+        objects = []
         # "disabled" is a required field:
         if spec.get("disabled") != False:
             return []
@@ -266,11 +267,19 @@ class ApiResponseParser(Logger):
         if spec_ra is not None and spec_ra != remediation_action:
             self.logger.debug(f"spec remediation action is {spec_ra}, but {remediation_action} was required")
             return []
-        obj_templates = [pt.get("spec", {}).get("object-templates")
-            for pt in spec.get("policy-templates", [])]
-        self.logger.debug(obj_templates)
+        policy_templates = spec.get("policy-templates", [])
+        for template in policy_templates:
+            obj_def = template.get('objectDefinition')
+            od_spec = obj_def.get("spec")
+            object_templates = od_spec.get('object-templates', [])
+            for item in object_templates:
+                objects.append(item.get("objectDefinition"))
+        return objects
+        # obj_templates = [pt.get("spec", {}).get("object-templates")
+        #     for pt in spec.get("policy-templates", [])]
+        # self.logger.debug(obj_templates)
         
-        return  [item.get("objectDefinition:") for item in  obj_templates]
+        # return  [item.get("objectDefinition:") for item in  obj_templates]
             # if item.get("complianceType") == compliance_type and
             #     (item.get("remediationAction") is None or 
             #     item.get("remediationAction") == remediation_action)]
