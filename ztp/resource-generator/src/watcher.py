@@ -110,14 +110,19 @@ class PolicyGenWrapper(Logger):
 
 
 class OcWrapper(Logger):
-    def __init__(self, action: str, path: str):
+    """ wraps the oc cli program for CRUD on a single resource or
+    several resources in bulk """
+    def __init__(self, action: str):
+        self.action = action
+
+    def bulk(self, path: str):
         try:
             status = None
             for f in self._find_files(path):
                 with open(f, "r") as pl:
                     txt = pl.read()
                 self.logger.debug(txt)
-                cmd = ["oc", f"{action}", "-f", f"{f}"]
+                cmd = ["oc", f"{self.action}", "-f", f"{f}"]
                 self.logger.debug(cmd)
                 status = subprocess.run(
                     cmd,
@@ -172,7 +177,7 @@ class ApiResponseParser(Logger):
                 if len(self.upd_list) > 0:
                     PolicyGenWrapper([self.upd_path, out_upd_path])
                     if resourcename == "siteconfigs":
-                        OcWrapper('apply', out_upd_path)
+                        OcWrapper('apply').bulk(out_upd_path)
                     else:
                         self._reconcile_policies(out_upd_path)
                 else:
@@ -182,7 +187,7 @@ class ApiResponseParser(Logger):
                 if len(self.del_list) > 0:
                     if self._handle_site_deletions():
                         PolicyGenWrapper([self.del_path, out_del_path])
-                        OcWrapper('delete', out_del_path)
+                        OcWrapper('delete').bulk(out_del_path)
                 else:
                     self.logger.debug("No objects to delete")
 
@@ -287,7 +292,6 @@ class ApiResponseParser(Logger):
                             manifest = template.render(
                                 resource=resource_name, resource_ns=resource_ns,
                                 ns=ns, name=name, mca_name=mca_name)
-                            self.logger.debug(manifest)
                             fn = tempfile.mktemp()
                             with open(fn, "w") as f:
                                 f.write(manifest)
@@ -307,8 +311,7 @@ class ApiResponseParser(Logger):
                                         remediation_action: str):
         spec = pol.get("spec", {})
         objects = []
-        # "disabled" is a required field:
-        if spec.get("disabled") != False:
+        if spec.get("disabled", False) != False:
             return [], []
         spec_ra = spec.get("remediationAction")
         if spec_ra is not None and spec_ra != remediation_action:
