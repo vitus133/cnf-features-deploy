@@ -291,7 +291,7 @@ class ApiResponseParser(Logger):
                             fn = tempfile.mktemp()
                             with open(fn, "w") as f:
                                 f.write(manifest)
-                            cmd = ["oc", "apply", "-f", f"{fn}"]
+                            cmd = ["oc", "create", "-f", f"{fn}"]
                             status = subprocess.run(
                                 cmd,
                                 stdout=subprocess.PIPE,
