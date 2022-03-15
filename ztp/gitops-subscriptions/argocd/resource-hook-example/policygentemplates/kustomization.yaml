@@ -2,5 +2,5 @@ resources:
 - post-sync.yaml
 - pre-sync.yaml
 - common-ranGen.yaml
-- group-du-sno-ranGen.yaml
+# - group-du-sno-ranGen.yaml
 - test-sno.yaml
