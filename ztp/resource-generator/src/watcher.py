@@ -287,7 +287,7 @@ class ApiResponseParser(Logger):
                             manifest = template.render(
                                 resource=resource_name, resource_ns=resource_ns,
                                 ns=ns, name=name, mca_name=mca_name)
-                            self.log.debug(manifest)
+                            self.logger.debug(manifest)
                             fn = tempfile.mktemp()
                             with open(fn, "w") as f:
                                 f.write(manifest)
