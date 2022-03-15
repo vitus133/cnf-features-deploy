@@ -9,7 +9,23 @@ import tempfile
 import subprocess
 from kubernetes import client, config
 import logging
-import jinja2
+from jinja2 import Template
+
+mca_delete = """
+{
+  "apiVersion": "action.open-cluster-management.io/v1beta1",
+  "kind": "ManagedClusterAction",
+  "spec": {
+      "actionType": "Delete",
+        "kube": {
+            "resource": {{ resource }},
+            "namespace": {{ ns }},
+            "name": {{ name }}
+        }
+    }	
+}
+
+"""
 
 
 class Logger():
@@ -250,20 +266,41 @@ class ApiResponseParser(Logger):
                     check=True)
                 self.logger.debug(status.stderr + status.stdout)
                 os.unlink(fn)
-                mng_cluster_objects = self._extract_enabled_policy_objects(
+                # Now delete the managed cluster objects
+                template = Template(mca_delete)
+                mng_cluster_objects, clusters = self._extract_enabled_policy_objects(
                     it, "musthave", "enforce")
-
+                for cluster in clusters:
+                    ns = cluster.get("clusternamespace")
+                    if cluster.get("compliant") == "Compliant":
+                        for obj in mng_cluster_objects:
+                            name = obj.get("metadata").get("name")
+                            resource_name = obj.get("kind").lower()
+                            manifest = template.render(
+                                resource=resource_name,
+                                ns=ns, name=name)
+                            fn = tempfile.mktemp()
+                            with open(fn, "w") as f:
+                                f.write(manifest)
+                            cmd = ["oc", "delete", "-f", f"{fn}"]
+                            status = subprocess.run(
+                                cmd,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                check=True)
+                            self.logger.debug(status.stderr + status.stdout)
+                            os.unlink(fn)
+       
     """ Extract enabled policy objects by filter """
     def _extract_enabled_policy_objects(self,
                                         pol: dict,
                                         compliance_type: str,
                                         remediation_action: str):
         spec = pol.get("spec", {})
-        self.logger.debug(spec)
         objects = []
         # "disabled" is a required field:
         if spec.get("disabled") != False:
-            return []
+            return [], []
         spec_ra = spec.get("remediationAction")
         if spec_ra is not None and spec_ra != remediation_action:
             msg = (f"spec remediation action is {spec_ra}, but "
@@ -271,7 +308,7 @@ class ApiResponseParser(Logger):
                    f"{pol['metadata']['name']} in "
                    f"{pol['metadata']['namespace']} namespace")
             self.logger.debug(msg)
-            return []
+            return [], []
         policy_templates = spec.get("policy-templates", [])
         for template in policy_templates:
             obj_def = template.get('objectDefinition')
@@ -282,7 +319,8 @@ class ApiResponseParser(Logger):
                     item.get("remediationAction") is None or 
                     item.get("remediationAction") == remediation_action):
                         objects.append(item.get("objectDefinition"))
-        return objects
+        
+        return objects, pol.get("status", {}).get("status", [])
 
 
 
