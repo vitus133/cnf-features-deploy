@@ -273,7 +273,10 @@ class ApiResponseParser(Logger):
             od_spec = obj_def.get("spec")
             object_templates = od_spec.get('object-templates', [])
             for item in object_templates:
-                objects.append(item.get("objectDefinition"))
+                if item.get("complianceType") == compliance_type and (
+                    item.get("remediationAction") is None or 
+                    item.get("remediationAction") == remediation_action):
+                        objects.append(item.get("objectDefinition"))
         return objects
         # obj_templates = [pt.get("spec", {}).get("object-templates")
         #     for pt in spec.get("policy-templates", [])]
