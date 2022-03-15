@@ -268,6 +268,7 @@ class ApiResponseParser(Logger):
             return []
         obj_templates = [pt.get("spec", {}).get("object-templates")
             for pt in spec.get("policy-templates", [])]
+        self.logger.debug(obj_templates)
         
         return  [item.get("objectDefinition:") for item in  obj_templates]
             # if item.get("complianceType") == compliance_type and
