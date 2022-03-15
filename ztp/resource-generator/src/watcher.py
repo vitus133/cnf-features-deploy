@@ -16,17 +16,17 @@ mca_delete = """
   "apiVersion": "action.open-cluster-management.io/v1beta1",
   "kind": "ManagedClusterAction",
   "metadata: {
-      "name": {{ mca_name }},
-      "namespace": {{ ns }}
+      "name": "{{ mca_name }}",
+      "namespace": "{{ ns }}"
   }
   "spec": {
       "actionType": "Delete",
         "kube": {
-            "resource": {{ resource }},
+            "resource": "{{ resource }}",
 {% if resource_ns %}            
-            "namespace": {{ resource_ns }},
+            "namespace": "{{ resource_ns }}",
 {% endif %}            
-            "name": {{ name }}
+            "name": "{{ name }}"
         }
     }	
 }
