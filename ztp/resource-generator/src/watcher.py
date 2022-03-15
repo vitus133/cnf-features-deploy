@@ -15,11 +15,17 @@ mca_delete = """
 {
   "apiVersion": "action.open-cluster-management.io/v1beta1",
   "kind": "ManagedClusterAction",
+  "metadata: {
+      "name": {{ mca_name }},
+      "namespace": {{ ns }}
+  }
   "spec": {
       "actionType": "Delete",
         "kube": {
             "resource": {{ resource }},
-            "namespace": {{ ns }},
+{% if resource_ns %}            
+            "namespace": {{ resource_ns }},
+{% endif %}            
             "name": {{ name }}
         }
     }	
@@ -275,10 +281,13 @@ class ApiResponseParser(Logger):
                     if cluster.get("compliant") == "Compliant":
                         for obj in mng_cluster_objects:
                             name = obj.get("metadata").get("name")
+                            resource_ns = obj.get("metadata").get("namespace")
                             resource_name = obj.get("kind").lower()
+                            mca_name = f"{ns}.{name}.{resource_name}.delete"
                             manifest = template.render(
-                                resource=resource_name,
-                                ns=ns, name=name)
+                                resource=resource_name, resource_ns=resource_ns,
+                                ns=ns, name=name, mca_name=mca_name)
+                            self.log.debug(manifest)
                             fn = tempfile.mktemp()
                             with open(fn, "w") as f:
                                 f.write(manifest)
