@@ -33,7 +33,7 @@ mca_delete = """
 
 """
 
-def find_files(self, root):
+def find_files(root):
     for d, dirs, files in os.walk(root):
         for f in files:
             yield os.path.join(d, f)
