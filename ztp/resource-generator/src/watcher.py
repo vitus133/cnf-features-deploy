@@ -33,6 +33,10 @@ mca_delete = """
 
 """
 
+def find_files(self, root):
+    for d, dirs, files in os.walk(root):
+        for f in files:
+            yield os.path.join(d, f)
 
 class Logger():
     @property
@@ -116,37 +120,40 @@ class OcWrapper(Logger):
         self.action = action
 
     def bulk(self, path: str):
+        for f in find_files(path):
+            self.file(f)
+
+    def dictionary(self, manifest:dict):
+        """ Applies the oc action on a single dictionary manifest """
+        fn = tempfile.mktemp()
+        with open(fn, "w") as f:
+            json.dump(manifest, f)
+        self.file(fn)
+        os.unlink(fn)
+
+    def file(self, filename: str):
+        """ Applies the oc action on a single file specified by path """
         try:
             status = None
-            for f in self._find_files(path):
-                with open(f, "r") as pl:
-                    txt = pl.read()
-                self.logger.debug(txt)
-                cmd = ["oc", f"{self.action}", "-f", f"{f}"]
-                self.logger.debug(cmd)
-                status = subprocess.run(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    check=True)
-                self.logger.debug(status.stdout.decode())
+            cmd = ["oc", f"{self.action}", "-f", f"{filename}"]
+            self.logger.debug(cmd)
+            status = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True)
+            self.logger.debug(status.stdout.decode())
         except subprocess.CalledProcessError as cpe:
             nl = '\n'
             msg = f"{cpe.stdout.decode()} {cpe.stderr.decode()}"
-            with open(f, 'r') as ef:
+            with open(filename, 'r') as ef:
                 err_file = ef.read()
             self.logger.debug(f"OC wrapper error:{nl}{err_file}")
             self.logger.exception(msg)
-            raise Exception(f"Failed to {action} target manifests")
+            raise Exception(f'Failed to "oc {self.action}" manifest')
         except Exception as e:
             self.logger.exception(e)
             exit(1)
-
-    def _find_files(self, root):
-        for d, dirs, files in os.walk(root):
-            for f in files:
-                yield os.path.join(d, f)
-
 
 class ApiResponseParser(Logger):
     def __init__(self, api_response, resourcename="siteconfigs", debug=False):
@@ -202,13 +209,13 @@ class ApiResponseParser(Logger):
     def _get_policy_status(self, out_upd_path):
         # Find objects produced by policygen for this sync
         required_objects = []
-        for item in self._find_files(out_upd_path):
+        for item in find_files(out_upd_path):
             with open(os.path.join(out_upd_path, item), "r") as f:
                 opl = list(yaml.safe_load_all(f))
             required_objects.extend(opl)
         # Find PGT namespaces and existing policies
         current_policies = {}
-        for item in self._find_files(self.upd_path):
+        for item in find_files(self.upd_path):
             with open(os.path.join(out_upd_path, item), "r") as f:
                 ipl = list(yaml.safe_load_all(f))
             for pgt in ipl:
@@ -252,31 +259,33 @@ class ApiResponseParser(Logger):
                 ns_required_objects = [o for o in required_objects if o.get(
                     "metadata", {}).get("namespace") == ns]
                 for o in ns_required_objects:
-                    fn = tempfile.mktemp()
-                    with open(fn, "w") as f:
-                        json.dump(o, f)
-                    cmd = ["oc", "apply", "-f", f"{fn}"]
-                    status = subprocess.run(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        check=True)
-                    self.logger.debug(status.stderr + status.stdout)
-                    os.unlink(fn)
+                    OcWrapper("apply").dictionary(o)
+                    # fn = tempfile.mktemp()
+                    # with open(fn, "w") as f:
+                    #     json.dump(o, f)
+                    # cmd = ["oc", "apply", "-f", f"{fn}"]
+                    # status = subprocess.run(
+                    #     cmd,
+                    #     stdout=subprocess.PIPE,
+                    #     stderr=subprocess.PIPE,
+                    #     check=True)
+                    # self.logger.debug(status.stderr + status.stdout)
+                    # os.unlink(fn)
         # Delete remaining existing and not required policies
         for _, v in current_policies.items():
             for it in v.get("items", []):
-                fn = tempfile.mktemp()
-                with open(fn, "w") as f:
-                    json.dump(it, f)
-                cmd = ["oc", "delete", "-f", f"{fn}"]
-                status = subprocess.run(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    check=True)
-                self.logger.debug(status.stderr + status.stdout)
-                os.unlink(fn)
+                OcWrapper("delete").dictionary(it)
+                # fn = tempfile.mktemp()
+                # with open(fn, "w") as f:
+                #     json.dump(it, f)
+                # cmd = ["oc", "delete", "-f", f"{fn}"]
+                # status = subprocess.run(
+                #     cmd,
+                #     stdout=subprocess.PIPE,
+                #     stderr=subprocess.PIPE,
+                #     check=True)
+                # self.logger.debug(status.stderr + status.stdout)
+                # os.unlink(fn)
                 # Now delete the managed cluster objects
                 template = Template(mca_delete)
                 mng_cluster_objects, clusters = self._extract_enabled_policy_objects(
@@ -289,20 +298,25 @@ class ApiResponseParser(Logger):
                             resource_ns = obj.get("metadata").get("namespace")
                             resource_name = obj.get("kind").lower()
                             mca_name = f"{ns}.{name}.{resource_name}.delete"
-                            manifest = template.render(
+                            manifest = json.loads(template.render(
                                 resource=resource_name, resource_ns=resource_ns,
-                                ns=ns, name=name, mca_name=mca_name)
-                            fn = tempfile.mktemp()
-                            with open(fn, "w") as f:
-                                f.write(manifest)
-                            cmd = ["oc", "create", "-f", f"{fn}"]
-                            status = subprocess.run(
-                                cmd,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                check=True)
-                            self.logger.debug(status.stderr + status.stdout)
-                            os.unlink(fn)
+                                ns=ns, name=name, mca_name=mca_name))
+                            OcWrapper("create").dictionary(manifest)
+
+                            # manifest = template.render(
+                            #     resource=resource_name, resource_ns=resource_ns,
+                            #     ns=ns, name=name, mca_name=mca_name)
+                            # fn = tempfile.mktemp()
+                            # with open(fn, "w") as f:
+                            #     f.write(manifest)
+                            # cmd = ["oc", "create", "-f", f"{fn}"]
+                            # status = subprocess.run(
+                            #     cmd,
+                            #     stdout=subprocess.PIPE,
+                            #     stderr=subprocess.PIPE,
+                            #     check=True)
+                            # self.logger.debug(status.stderr + status.stdout)
+                            # os.unlink(fn)
        
     """ Extract enabled policy objects by filter """
     def _extract_enabled_policy_objects(self,
@@ -333,17 +347,6 @@ class ApiResponseParser(Logger):
                         objects.append(item.get("objectDefinition"))
         
         return objects, pol.get("status", {}).get("status", [])
-
-
-
-
-
-    
-    def _find_files(self, root):
-        for d, dirs, files in os.walk(root):
-            for f in files:
-                yield os.path.join(d, f)
-
 
     # Note: this solution is limited to SNO (one cluster per siteconfig).
     def _handle_site_deletions(self) -> bool:
