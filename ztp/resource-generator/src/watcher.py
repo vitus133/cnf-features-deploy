@@ -23,20 +23,22 @@ mca_delete = """
       "actionType": "Delete",
         "kube": {
             "resource": "{{ resource }}",
-{% if resource_ns %}            
+{% if resource_ns %}
             "namespace": "{{ resource_ns }}",
-{% endif %}            
+{% endif %}
             "name": "{{ name }}"
         }
-    }	
+    }
 }
 
 """
+
 
 def find_files(root):
     for d, dirs, files in os.walk(root):
         for f in files:
             yield os.path.join(d, f)
+
 
 class Logger():
     @property
@@ -107,36 +109,38 @@ class PolicyGenWrapper(Logger):
                             cwd=cwd, env=env) as pg:
                 output = pg.communicate()
                 if len(output[1]):
-                    raise Exception(f"Manifest conversion failed: {output[1].decode()}")
+                    raise Exception(
+                        f"Manifest conversion failed: {output[1].decode()}")
         except Exception as e:
             self.logger.exception(f"PolicyGenWrapper failed: {e}")
             exit(1)
 
 
 class OcWrapper(Logger):
-    """ wraps the oc cli program for CRUD on a single resource or
-    several resources in bulk """
+    """ wraps the oc cli program for an action on a single resource,
+    list of args or several resources in bulk """
     def __init__(self, action: str):
         self.action = action
 
     def bulk(self, path: str):
         for f in find_files(path):
             self.file(f)
+        return None
 
-    def dictionary(self, manifest:dict):
+    def dictionary(self, manifest: dict):
         """ Applies the oc action on a single dictionary manifest """
         fn = tempfile.mktemp()
         with open(fn, "w") as f:
             json.dump(manifest, f)
-        self.file(fn)
+        status = self.file(fn)
         os.unlink(fn)
+        return status
 
-    def file(self, filename: str):
-        """ Applies the oc action on a single file specified by path """
+    def args(self, args: list):
+        """ Applies the oc action by a list of args """
         try:
             status = None
-            cmd = ["oc", f"{self.action}", "-f", f"{filename}"]
-            self.logger.debug(cmd)
+            cmd = ["oc", f"{self.action}"].extend(args)
             status = subprocess.run(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -146,14 +150,24 @@ class OcWrapper(Logger):
         except subprocess.CalledProcessError as cpe:
             nl = '\n'
             msg = f"{cpe.stdout.decode()} {cpe.stderr.decode()}"
-            with open(filename, 'r') as ef:
-                err_file = ef.read()
-            self.logger.debug(f"OC wrapper error:{nl}{err_file}")
-            self.logger.exception(msg)
-            raise Exception(f'Failed to "oc {self.action}" manifest')
+            if args[0] == "-f":
+                filename = args[1]
+                with open(filename, 'r') as ef:
+                    err_file = ef.read()
+                self.logger.debug(f"OC wrapper error:{nl}{err_file}")
+                self.logger.exception(msg)
+            raise Exception(f'Failed to "oc {self.action} {args}"')
         except Exception as e:
             self.logger.exception(e)
             exit(1)
+        finally:
+            return status
+
+    def file(self, filename: str):
+        """ Applies the oc action on a single file specified by path """
+        cmd = ["-f", f"{filename}"]
+        return self.args(cmd)
+
 
 class ApiResponseParser(Logger):
     def __init__(self, api_response, resourcename="siteconfigs", debug=False):
@@ -236,19 +250,32 @@ class ApiResponseParser(Logger):
         return current_policies, required_objects
 
     def _reconcile_policies(self, out_upd_path):
-        current_policies, required_objects = self._get_policy_status(out_upd_path)
-        required_policies = [o for o in required_objects if o.get("kind") == "Policy"]
+        """ Reconciles objects produced by policygen with
+        existing ACM objects """
+        # 1. Get current policies and required objects.
+        # 'current_policies' is a dictionary (keys are policy namespaces)
+        # 'required_objects' is a list of objects produced by policygen
+        current_policies, required_objects = \
+            self._get_policy_status(out_upd_path)
+        # 'required_policies' - 'Policy' kind subset of the required objects
+        required_policies = \
+            [o for o in required_objects if o.get("kind") == "Policy"]
+        # For every required policy check that it's also current:
         for item in required_policies:
             ns = item.get("metadata", {}).get("namespace")
             name = item.get("metadata", {}).get("name")
-            
+            # 'current ' holds policies that are both required and current.
+            # These are removed from 'current_policies'dict
             current = []
-            current_policies_items = current_policies.get(ns, {}).get("items", [])
+            current_policies_items = current_policies.get(ns, {}).get(
+                "items", [])
             for i in range(len(current_policies_items)):
-                if current_policies_items[i].get("metadata", {}).get("name") == name:
+                if current_policies_items[i].get("metadata", {}).get(
+                        "name") == name:
                     current.append(current_policies_items[i])
                     del current_policies[ns]["items"][i]
-            if current_policies.get(ns) != None and len(current_policies.get(ns)) == 0:
+            if current_policies.get(ns) is not None and len(
+                    current_policies.get(ns)) == 0:
                 del current_policies[ns]
             msg = (f"ns={ns}, name={name}, ",
                    f"current={current}, ",
@@ -260,36 +287,18 @@ class ApiResponseParser(Logger):
                     "metadata", {}).get("namespace") == ns]
                 for o in ns_required_objects:
                     OcWrapper("apply").dictionary(o)
-                    # fn = tempfile.mktemp()
-                    # with open(fn, "w") as f:
-                    #     json.dump(o, f)
-                    # cmd = ["oc", "apply", "-f", f"{fn}"]
-                    # status = subprocess.run(
-                    #     cmd,
-                    #     stdout=subprocess.PIPE,
-                    #     stderr=subprocess.PIPE,
-                    #     check=True)
-                    # self.logger.debug(status.stderr + status.stdout)
-                    # os.unlink(fn)
         # Delete remaining existing and not required policies
         for _, v in current_policies.items():
             for it in v.get("items", []):
                 OcWrapper("delete").dictionary(it)
-                # fn = tempfile.mktemp()
-                # with open(fn, "w") as f:
-                #     json.dump(it, f)
-                # cmd = ["oc", "delete", "-f", f"{fn}"]
-                # status = subprocess.run(
-                #     cmd,
-                #     stdout=subprocess.PIPE,
-                #     stderr=subprocess.PIPE,
-                #     check=True)
-                # self.logger.debug(status.stderr + status.stdout)
-                # os.unlink(fn)
-                # Now delete the managed cluster objects
+                # Extract objects encapsulated in the deleted policy
+                # and delete it with the managedclusteraction
+                # This is only done for clusters where the policy was compliant
+                # and where 'musthave' was 'enforced'
                 template = Template(mca_delete)
-                mng_cluster_objects, clusters = self._extract_enabled_policy_objects(
-                    it, "musthave", "enforce")
+                mng_cluster_objects, clusters = \
+                    self._extract_enabled_policy_objects(
+                        it, "musthave", "enforce")
                 for cluster in clusters:
                     ns = cluster.get("clusternamespace")
                     if cluster.get("compliant") == "Compliant":
@@ -299,33 +308,19 @@ class ApiResponseParser(Logger):
                             resource_name = obj.get("kind").lower()
                             mca_name = f"{ns}.{name}.{resource_name}.delete"
                             manifest = json.loads(template.render(
-                                resource=resource_name, resource_ns=resource_ns,
+                                resource=resource_name,
+                                resource_ns=resource_ns,
                                 ns=ns, name=name, mca_name=mca_name))
                             OcWrapper("create").dictionary(manifest)
 
-                            # manifest = template.render(
-                            #     resource=resource_name, resource_ns=resource_ns,
-                            #     ns=ns, name=name, mca_name=mca_name)
-                            # fn = tempfile.mktemp()
-                            # with open(fn, "w") as f:
-                            #     f.write(manifest)
-                            # cmd = ["oc", "create", "-f", f"{fn}"]
-                            # status = subprocess.run(
-                            #     cmd,
-                            #     stdout=subprocess.PIPE,
-                            #     stderr=subprocess.PIPE,
-                            #     check=True)
-                            # self.logger.debug(status.stderr + status.stdout)
-                            # os.unlink(fn)
-       
-    """ Extract enabled policy objects by filter """
     def _extract_enabled_policy_objects(self,
                                         pol: dict,
                                         compliance_type: str,
                                         remediation_action: str):
+        """ Extract enabled policy objects by filter """
         spec = pol.get("spec", {})
         objects = []
-        if spec.get("disabled", False) != False:
+        if spec.get("disabled", False):
             return [], []
         spec_ra = spec.get("remediationAction")
         if spec_ra is not None and spec_ra != remediation_action:
@@ -342,10 +337,9 @@ class ApiResponseParser(Logger):
             object_templates = od_spec.get('object-templates', [])
             for item in object_templates:
                 if item.get("complianceType") == compliance_type and (
-                    item.get("remediationAction") is None or 
-                    item.get("remediationAction") == remediation_action):
-                        objects.append(item.get("objectDefinition"))
-        
+                    item.get("remediationAction") is None or
+                        item.get("remediationAction") == remediation_action):
+                    objects.append(item.get("objectDefinition"))
         return objects, pol.get("status", {}).get("status", [])
 
     # Note: this solution is limited to SNO (one cluster per siteconfig).
