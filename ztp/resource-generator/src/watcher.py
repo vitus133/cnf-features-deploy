@@ -183,9 +183,18 @@ class ApiResponseParser(Logger):
                 os.mkdir(self.del_path)
                 os.mkdir(self.upd_path)
                 self._parse(api_response[0])
-                self.logger.debug(f"Objects to delete are: {self.del_list}")
+                # Items that appear both in delete and modify should be 
+                # removed from modify
+                del_names = [n.get("obj_name") for n in self.del_list]
+                mod_names = [n.get("obj_name") for n in self.upd_list]
+                mod_names = set(mod_names) - set(del_names)
+                for item in self.upd_list:
+                    if item.get("obj_name") not in mod_names:
+                        os.unlink(item.get("path"))
+
+                self.logger.debug(f"Objects to delete are: {del_names}")
                 self.logger.debug(
-                    f"Objects to create/update are: {self.upd_list}")
+                    f"Objects to create/update are: {mod_names}")
 
                 out_tmpdir = tempfile.mkdtemp()
                 out_del_path = os.path.join(out_tmpdir, 'delete')
@@ -206,8 +215,9 @@ class ApiResponseParser(Logger):
                 # Do deletes
                 if len(self.del_list) > 0:
                     if self._handle_site_deletions():
-                        PolicyGenWrapper([self.del_path, out_del_path])
-                        OcWrapper('delete').bulk(out_del_path)
+                        pass
+                        # PolicyGenWrapper([self.del_path, out_del_path])
+                        # OcWrapper('delete').bulk(out_del_path)
                 else:
                     self.logger.debug("No objects to delete")
 
@@ -402,6 +412,10 @@ class ApiResponseParser(Logger):
         site['object']['metadata'].pop("resourceVersion", None)
         site['object']['metadata'].pop("selfLink", None)
         site['object']['metadata'].pop("uid", None)
+        annotations = site['object']['metadata'].get("annotations")
+        if annotations.get("kubectl.kubernetes.io/last-applied-configuration") is not None:
+            site['object']['metadata']["annotations"].pop(
+                "kubectl.kubernetes.io/last-applied-configuration", None)
 
     def _create_site_file(self, site: dict):
         try:
@@ -414,7 +428,9 @@ class ApiResponseParser(Logger):
             _, name = tempfile.mkstemp(dir=path)
             with open(name, 'w') as f:
                 yaml.dump(site.get("object"), f)
-            lst.append(site.get("object").get("metadata").get("name"))
+            metadata = site.get("object").get("metadata")
+            obj_name = f'{metadata.get("namespace")}.{metadata.get("name")}'
+            lst.append({"obj_name": obj_name, "path": name})
         except Exception as e:
             self.logger.exception(e)
             exit(1)
