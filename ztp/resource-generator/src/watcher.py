@@ -194,7 +194,7 @@ class ApiResponseParser(Logger):
 
                 self.logger.debug(f"Objects to delete are: {del_names}")
                 self.logger.debug(
-                    f"Objects to create/update are: {mod_names}")
+                    f"Objects to create/update are: {list(mod_names)}")
 
                 out_tmpdir = tempfile.mkdtemp()
                 out_del_path = os.path.join(out_tmpdir, 'delete')
