@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from ast import arg
 import os
 import shutil
 import sys
@@ -136,11 +137,12 @@ class OcWrapper(Logger):
         os.unlink(fn)
         return status
 
-    def args(self, args: list):
+    def arglist(self, arguments: list):
         """ Applies the oc action by a list of args """
+        status = None
         try:
-            status = None
-            cmd = ["oc", f"{self.action}"].extend(args)
+            cmd = ["oc", f"{self.action}"] + arguments
+            self.logger.debug(cmd)
             status = subprocess.run(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -150,23 +152,20 @@ class OcWrapper(Logger):
         except subprocess.CalledProcessError as cpe:
             nl = '\n'
             msg = f"{cpe.stdout.decode()} {cpe.stderr.decode()}"
-            if args[0] == "-f":
-                filename = args[1]
+            if arguments[0] == "-f":
+                filename = arguments[1]
                 with open(filename, 'r') as ef:
                     err_file = ef.read()
-                self.logger.debug(f"OC wrapper error:{nl}{err_file}")
-                self.logger.exception(msg)
-            raise Exception(f'Failed to "oc {self.action} {args}"')
+                self.logger.exception(f"OC wrapper error {msg},{nl}{err_file}")
         except Exception as e:
-            self.logger.exception(e)
-            exit(1)
+            sys.exit(str(e))
         finally:
             return status
 
     def file(self, filename: str):
         """ Applies the oc action on a single file specified by path """
         cmd = ["-f", f"{filename}"]
-        return self.args(cmd)
+        return self.arglist(cmd)
 
 
 class ApiResponseParser(Logger):
@@ -269,6 +268,7 @@ class ApiResponseParser(Logger):
             current = []
             current_policies_items = current_policies.get(ns, {}).get(
                 "items", [])
+            self.logger.debug(current_policies_items)
             for i in range(len(current_policies_items)):
                 if current_policies_items[i].get("metadata", {}).get(
                         "name") == name:
