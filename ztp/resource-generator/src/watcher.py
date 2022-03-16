@@ -214,10 +214,7 @@ class ApiResponseParser(Logger):
 
                 # Do deletes
                 if len(self.del_list) > 0:
-                    if self._handle_site_deletions():
-                        pass
-                        # PolicyGenWrapper([self.del_path, out_del_path])
-                        # OcWrapper('delete').bulk(out_del_path)
+                    self._handle_site_deletions()
                 else:
                     self.logger.debug("No objects to delete")
 
