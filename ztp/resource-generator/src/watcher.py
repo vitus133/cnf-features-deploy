@@ -412,10 +412,6 @@ class ApiResponseParser(Logger):
         site['object']['metadata'].pop("resourceVersion", None)
         site['object']['metadata'].pop("selfLink", None)
         site['object']['metadata'].pop("uid", None)
-        annotations = site['object']['metadata'].get("annotations")
-        if annotations.get("kubectl.kubernetes.io/last-applied-configuration") is not None:
-            site['object']['metadata']["annotations"].pop(
-                "kubectl.kubernetes.io/last-applied-configuration", None)
 
     def _create_site_file(self, site: dict):
         try:
