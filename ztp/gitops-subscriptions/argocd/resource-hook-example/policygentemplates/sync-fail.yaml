@@ -1,9 +1,9 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: policygentemplates-post
+  name: policygentemplates-fail
   namespace: policies-sub
-  generateName: post-sync-
+  generateName: fail-sync-
   annotations:
     argocd.argoproj.io/hook: SyncFail
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
