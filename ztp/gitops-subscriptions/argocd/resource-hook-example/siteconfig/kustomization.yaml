@@ -1,4 +1,5 @@
 resources:
 - post-sync.yaml
 - pre-sync.yaml
-- test-sno.yaml  
+- test-sno.yaml
+- sync-fail.yaml

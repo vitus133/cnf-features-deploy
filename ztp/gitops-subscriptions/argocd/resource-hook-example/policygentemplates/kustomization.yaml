@@ -4,3 +4,4 @@ resources:
 - common-ranGen.yaml
 - group-du-sno-ranGen.yaml
 - test-sno.yaml
+- sync-fail.yaml
