@@ -12,27 +12,27 @@ from kubernetes import client, config
 import logging
 from jinja2 import Template
 
-mca_delete = """
-{
-  "apiVersion": "action.open-cluster-management.io/v1beta1",
-  "kind": "ManagedClusterAction",
-  "metadata": {
-      "name": "{{ mca_name }}",
-      "namespace": "{{ ns }}"
-  },
-  "spec": {
-      "actionType": "Delete",
-        "kube": {
-            "resource": "{{ resource }}",
-{% if resource_ns %}
-            "namespace": "{{ resource_ns }}",
-{% endif %}
-            "name": "{{ name }}"
-        }
-    }
-}
+# mca_delete = """
+# {
+#   "apiVersion": "action.open-cluster-management.io/v1beta1",
+#   "kind": "ManagedClusterAction",
+#   "metadata": {
+#       "name": "{{ mca_name }}",
+#       "namespace": "{{ ns }}"
+#   },
+#   "spec": {
+#       "actionType": "Delete",
+#         "kube": {
+#             "resource": "{{ resource }}",
+# {% if resource_ns %}
+#             "namespace": "{{ resource_ns }}",
+# {% endif %}
+#             "name": "{{ name }}"
+#         }
+#     }
+# }
 
-"""
+# """
 
 
 def find_files(root):
@@ -298,56 +298,56 @@ class ApiResponseParser(Logger):
         for _, v in current_policies.items():
             for it in v.get("items", []):
                 OcWrapper("delete").dictionary(it)
-                # Extract objects encapsulated in the deleted policy
-                # and delete it with the managedclusteraction
-                # This is only done for clusters where the policy was compliant
-                # and where 'musthave' was 'enforced'
-                template = Template(mca_delete)
-                mng_cluster_objects, clusters = \
-                    self._extract_enabled_policy_objects(
-                        it, "musthave", "enforce")
-                for cluster in clusters:
-                    ns = cluster.get("clusternamespace")
-                    if cluster.get("compliant") == "Compliant":
-                        for obj in mng_cluster_objects:
-                            name = obj.get("metadata").get("name")
-                            resource_ns = obj.get("metadata").get("namespace")
-                            resource_name = obj.get("kind").lower()
-                            mca_name = f"{ns}.{name}.{resource_name}.delete"
-                            manifest = json.loads(template.render(
-                                resource=resource_name,
-                                resource_ns=resource_ns,
-                                ns=ns, name=name, mca_name=mca_name))
-                            OcWrapper("create").dictionary(manifest)
+    #             # Extract objects encapsulated in the deleted policy
+    #             # and delete it with the managedclusteraction
+    #             # This is only done for clusters where the policy was compliant
+    #             # and where 'musthave' was 'enforced'
+    #             template = Template(mca_delete)
+    #             mng_cluster_objects, clusters = \
+    #                 self._extract_enabled_policy_objects(
+    #                     it, "musthave", "enforce")
+    #             for cluster in clusters:
+    #                 ns = cluster.get("clusternamespace")
+    #                 if cluster.get("compliant") == "Compliant":
+    #                     for obj in mng_cluster_objects:
+    #                         name = obj.get("metadata").get("name")
+    #                         resource_ns = obj.get("metadata").get("namespace")
+    #                         resource_name = obj.get("kind").lower()
+    #                         mca_name = f"{ns}.{name}.{resource_name}.delete"
+    #                         manifest = json.loads(template.render(
+    #                             resource=resource_name,
+    #                             resource_ns=resource_ns,
+    #                             ns=ns, name=name, mca_name=mca_name))
+    #                         OcWrapper("create").dictionary(manifest)
 
-    def _extract_enabled_policy_objects(self,
-                                        pol: dict,
-                                        compliance_type: str,
-                                        remediation_action: str):
-        """ Extract enabled policy objects by filter """
-        spec = pol.get("spec", {})
-        objects = []
-        if spec.get("disabled", False):
-            return [], []
-        spec_ra = spec.get("remediationAction")
-        if spec_ra is not None and spec_ra != remediation_action:
-            msg = (f"spec remediation action is {spec_ra}, but "
-                   f"{remediation_action} was required for policy"
-                   f"{pol['metadata']['name']} in "
-                   f"{pol['metadata']['namespace']} namespace")
-            self.logger.debug(msg)
-            return [], []
-        policy_templates = spec.get("policy-templates", [])
-        for template in policy_templates:
-            obj_def = template.get('objectDefinition')
-            od_spec = obj_def.get("spec")
-            object_templates = od_spec.get('object-templates', [])
-            for item in object_templates:
-                if item.get("complianceType") == compliance_type and (
-                    item.get("remediationAction") is None or
-                        item.get("remediationAction") == remediation_action):
-                    objects.append(item.get("objectDefinition"))
-        return objects, pol.get("status", {}).get("status", [])
+    # def _extract_enabled_policy_objects(self,
+    #                                     pol: dict,
+    #                                     compliance_type: str,
+    #                                     remediation_action: str):
+    #     """ Extract enabled policy objects by filter """
+    #     spec = pol.get("spec", {})
+    #     objects = []
+    #     if spec.get("disabled", False):
+    #         return [], []
+    #     spec_ra = spec.get("remediationAction")
+    #     if spec_ra is not None and spec_ra != remediation_action:
+    #         msg = (f"spec remediation action is {spec_ra}, but "
+    #                f"{remediation_action} was required for policy"
+    #                f"{pol['metadata']['name']} in "
+    #                f"{pol['metadata']['namespace']} namespace")
+    #         self.logger.debug(msg)
+    #         return [], []
+    #     policy_templates = spec.get("policy-templates", [])
+    #     for template in policy_templates:
+    #         obj_def = template.get('objectDefinition')
+    #         od_spec = obj_def.get("spec")
+    #         object_templates = od_spec.get('object-templates', [])
+    #         for item in object_templates:
+    #             if item.get("complianceType") == compliance_type and (
+    #                 item.get("remediationAction") is None or
+    #                     item.get("remediationAction") == remediation_action):
+    #                 objects.append(item.get("objectDefinition"))
+    #     return objects, pol.get("status", {}).get("status", [])
 
     # Note: this solution is limited to SNO (one cluster per siteconfig).
     def _handle_site_deletions(self) -> bool:
