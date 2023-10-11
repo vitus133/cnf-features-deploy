@@ -9,6 +9,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	fake "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/yaml"
 )
@@ -79,6 +81,23 @@ func clusterVersionNotFound() *unstructured.Unstructured {
 	}
 }
 
+func TestIsStatusConditionPresentAndTrue(t *testing.T) {
+	var z *zapService
+
+	dynamicResource := func(z *zapService, gvr schema.GroupVersionResource) dynamic.NamespaceableResourceInterface {
+		scheme := runtime.NewScheme()
+		client := fake.NewSimpleDynamicClient(scheme, clusterVersionProgressing())
+		return client.Resource(clusterVersionResource())
+	}
+	versionFound, versionProgressing, err := z.isStatusConditionPresentAndTrue(
+		dynamicResource, clusterVersionResource(), "version", "Progressing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, true, versionFound)
+	assert.Equal(t, true, versionProgressing)
+
+}
 func TestIsObjectStatusConditionPresentAndTrue(t *testing.T) {
 	scheme := runtime.NewScheme()
 

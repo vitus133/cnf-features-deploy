@@ -64,14 +64,21 @@ func clusterOperatorResource() schema.GroupVersionResource {
 	}
 }
 
+func dynamicResource(z *zapService, gvr schema.GroupVersionResource) dynamic.NamespaceableResourceInterface {
+	return z.dynamicClient.Resource(gvr)
+}
+
 // IsStatusConditionPresentAndTrue checks for a specific status condition on a resource.
-func (z *zapService) isStatusConditionPresentAndTrue(gvr schema.GroupVersionResource, name string, conditionType string) (
+func (z *zapService) isStatusConditionPresentAndTrue(
+	dynamicResourceInterface func(z *zapService, gvr schema.GroupVersionResource) dynamic.NamespaceableResourceInterface,
+	gvr schema.GroupVersionResource,
+	name string, conditionType string) (
 	found bool, positive bool, err error) {
 
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 
-	obj, err := z.dynamicClient.Resource(gvr).Get(ctx, name, v1.GetOptions{})
+	obj, err := dynamicResourceInterface(z, gvr).Get(ctx, name, v1.GetOptions{})
 	if err != nil {
 		return false, false, err
 	}
@@ -116,13 +123,13 @@ func (z *zapService) waitForStartCondition() error {
 		var olmAvailable bool
 		var err error
 		versionFound, versionProgressing, err = z.isStatusConditionPresentAndTrue(
-			clusterVersionResource(), "version", "Progressing")
+			dynamicResource, clusterVersionResource(), "version", "Progressing")
 		if err != nil {
 			log.Println(err)
 			goto continueWaitingForStart
 		}
 		_, olmAvailable, err = z.isStatusConditionPresentAndTrue(
-			clusterOperatorResource(),
+			dynamicResource, clusterOperatorResource(),
 			"operator-lifecycle-manager-packageserver", "Available")
 		if err != nil {
 			log.Println(err)
@@ -423,7 +430,7 @@ func main() {
 
 		case <-tickerAbortCheck.C:
 			versionFound, versionProgressing, err := z.isStatusConditionPresentAndTrue(
-				clusterVersionResource(), "version", "Progressing")
+				dynamicResource, clusterVersionResource(), "version", "Progressing")
 			if err != nil {
 				log.Println(err, "will retry")
 				retries += 1
