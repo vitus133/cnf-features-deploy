@@ -31,6 +31,14 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+type zapService struct {
+	checkStartCondition     *bool
+	dynamicClient           *dynamic.DynamicClient
+	kubeClientset           *kubernetes.Clientset
+	disClient               *discovery.DiscoveryClient
+	operatorsV1alpha1Client *operatorsv1alpha1.OperatorsV1alpha1Client
+	eventChannel            chan StatusEvent
+}
 type StatusEvent struct {
 	err        error
 	status     string
@@ -57,13 +65,13 @@ func clusterOperatorResource() schema.GroupVersionResource {
 }
 
 // IsStatusConditionPresentAndTrue checks for a specific status condition on a resource.
-func IsStatusConditionPresentAndTrue(client *dynamic.DynamicClient, gvr schema.GroupVersionResource,
-	name string, conditionType string) (found bool, positive bool, err error) {
+func (z *zapService) isStatusConditionPresentAndTrue(gvr schema.GroupVersionResource, name string, conditionType string) (
+	found bool, positive bool, err error) {
 
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 
-	obj, err := client.Resource(gvr).Get(ctx, name, v1.GetOptions{})
+	obj, err := z.dynamicClient.Resource(gvr).Get(ctx, name, v1.GetOptions{})
 	if err != nil {
 		return false, false, err
 	}
@@ -102,19 +110,19 @@ func isObjectStatusConditionPresentAndTrue(obj *unstructured.Unstructured, condi
 // Start condition - OLM is available and version is not progressing
 // End condition - clusterversion is available and not progressing
 // Error is returned upon the end condition.
-func waitForStartCondition(client *dynamic.DynamicClient) error {
+func (z *zapService) waitForStartCondition() error {
 	for {
 		var versionFound, versionProgressing bool
 		var olmAvailable bool
 		var err error
-		versionFound, versionProgressing, err = IsStatusConditionPresentAndTrue(
-			client, clusterVersionResource(), "version", "Progressing")
+		versionFound, versionProgressing, err = z.isStatusConditionPresentAndTrue(
+			clusterVersionResource(), "version", "Progressing")
 		if err != nil {
 			log.Println(err)
 			goto continueWaitingForStart
 		}
-		_, olmAvailable, err = IsStatusConditionPresentAndTrue(
-			client, clusterOperatorResource(),
+		_, olmAvailable, err = z.isStatusConditionPresentAndTrue(
+			clusterOperatorResource(),
 			"operator-lifecycle-manager-packageserver", "Available")
 		if err != nil {
 			log.Println(err)
@@ -135,7 +143,7 @@ func waitForStartCondition(client *dynamic.DynamicClient) error {
 }
 
 // extracts a list of manifests from configmap and returns them as a slice of unstructured
-func extractManifests(ctx context.Context, config *rest.Config) ([]unstructured.Unstructured, error) {
+func (z *zapService) extractManifests(ctx context.Context) ([]unstructured.Unstructured, error) {
 	retryTime := 30 * time.Second
 	name := os.Getenv("CONFIGMAP_NAME")
 	if name == "" {
@@ -145,17 +153,14 @@ func extractManifests(ctx context.Context, config *rest.Config) ([]unstructured.
 	if namespace == "" {
 		namespace = "ztp-profile"
 	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
+
 	var manifests []unstructured.Unstructured
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			cm, err := clientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, v1.GetOptions{})
+			cm, err := z.kubeClientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, v1.GetOptions{})
 			if err != nil {
 				goto waitForCm
 			}
@@ -192,7 +197,7 @@ func cmToManifests(cm *corev1.ConfigMap, manifests *[]unstructured.Unstructured)
 }
 
 // applyManifest applies arbitrary manifests
-func applyManifest(ctx context.Context, wg *sync.WaitGroup, channel chan StatusEvent, config *rest.Config, obj unstructured.Unstructured) {
+func (z *zapService) applyManifest(ctx context.Context, wg *sync.WaitGroup, channel chan StatusEvent, obj unstructured.Unstructured) {
 	defer wg.Done()
 	retryTime := 30 * time.Second
 
@@ -211,31 +216,17 @@ func applyManifest(ctx context.Context, wg *sync.WaitGroup, channel chan StatusE
 	}
 	channel <- ev
 
-	disClient, err := discovery.NewDiscoveryClientForConfig(config)
-	if err != nil {
-		ev.err = fmt.Errorf("error creating discovery client, %v", err)
-		ev.status = "fail"
-		channel <- ev
-		return
-
-	}
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		ev.err = fmt.Errorf("error creating dynamic client, %v", err)
-		ev.status = "fail"
-		channel <- ev
-		return
-	}
 	gv := strings.Split(apiVersion, "/")
 	var mapper *restmapper.DeferredDiscoveryRESTMapper
 	var mapping *meta.RESTMapping
+	var err error
 	for {
 		select {
 		case <-ctx.Done():
 			log.Printf("cancelled application of %s %s %s %s", apiVersion, kind, name, ns)
 			return
 		default:
-			mapper = restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(disClient))
+			mapper = restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(z.disClient))
 			mapping, err = mapper.RESTMapping(schema.GroupKind{
 				Group: gv[0],
 				Kind:  kind,
@@ -253,9 +244,9 @@ func applyManifest(ctx context.Context, wg *sync.WaitGroup, channel chan StatusE
 			}
 
 			if ns != "" {
-				_, err = dynamicClient.Resource(resource).Namespace(ns).Create(ctx, &obj, v1.CreateOptions{})
+				_, err = z.dynamicClient.Resource(resource).Namespace(ns).Create(ctx, &obj, v1.CreateOptions{})
 			} else {
-				_, err = dynamicClient.Resource(resource).Create(ctx, &obj, v1.CreateOptions{})
+				_, err = z.dynamicClient.Resource(resource).Create(ctx, &obj, v1.CreateOptions{})
 			}
 			if err != nil && !errors.IsAlreadyExists(err) {
 				log.Printf("failed to apply resource, will retry in %s, %v", retryTime, err)
@@ -271,23 +262,13 @@ func applyManifest(ctx context.Context, wg *sync.WaitGroup, channel chan StatusE
 }
 
 // Approves InstallPlans on the all namespaces, until cancelled
-func approveInstallPlans(ctx context.Context, wg *sync.WaitGroup, channel chan StatusEvent, config *rest.Config) {
+func (z *zapService) approveInstallPlans(ctx context.Context, wg *sync.WaitGroup, channel chan StatusEvent) {
 
 	defer wg.Done()
 	retryTime := 30 * time.Second
-	ev := StatusEvent{
-		err: nil,
-	}
 
-	client, err := operatorsv1alpha1.NewForConfig(config)
-	if err != nil {
-		ev.err = fmt.Errorf("error creating operators client, %v", err)
-		ev.status = "fail"
-		channel <- ev
-		return
-	}
 	for {
-		watcher, err := client.InstallPlans("").Watch(ctx, v1.ListOptions{})
+		watcher, err := z.operatorsV1alpha1Client.InstallPlans("").Watch(ctx, v1.ListOptions{})
 		if err != nil {
 			log.Print(context.Canceled, err)
 			if err == context.Canceled {
@@ -304,7 +285,7 @@ func approveInstallPlans(ctx context.Context, wg *sync.WaitGroup, channel chan S
 				log.Print("installplan watch: ", item.Name, " ", item.Namespace, " ", event.Type)
 				if !item.Spec.Approved {
 					log.Printf("approving installplan %s in namespace %s", item.Name, item.Namespace)
-					_, err = client.InstallPlans(item.Namespace).Patch(ctx, item.Name, types.MergePatchType,
+					_, err = z.operatorsV1alpha1Client.InstallPlans(item.Namespace).Patch(ctx, item.Name, types.MergePatchType,
 						[]byte("{\"spec\":{\"approved\":true}}"), v1.PatchOptions{})
 					if err != nil {
 						log.Printf("update installplans error, will retry, %v", err)
@@ -326,18 +307,19 @@ func approveInstallPlans(ctx context.Context, wg *sync.WaitGroup, channel chan S
 }
 
 // applyManifests applies extracted manifests
-func applyManifests(ctx context.Context, wg *sync.WaitGroup, channel chan StatusEvent, config *rest.Config) {
+func (z *zapService) applyManifests(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-	manifests, err := extractManifests(ctx, config)
+	manifests, err := z.extractManifests(ctx)
 	if err != nil {
-		channel <- StatusEvent{
+		z.eventChannel <- StatusEvent{
 			err:    err,
 			status: "fatal",
 		}
+		return
 	}
 	for _, manifest := range manifests {
 		wg.Add(1)
-		go applyManifest(ctx, wg, channel, config, manifest)
+		go z.applyManifest(ctx, wg, z.eventChannel, manifest)
 	}
 
 }
@@ -351,35 +333,58 @@ func checkDelayExit() {
 	}
 }
 
-// main
-func main() {
-	checkStartCondition := flag.Bool("override", false, "Block until start condition occurs")
-	flag.Parse()
+func (z *zapService) init() error {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		log.Panic(err)
+		return err
 	}
-	// Dynamic client - for applying and monitoring arbitrary manifests.
-	dynamicClient, err := dynamic.NewForConfig(config)
+	z.dynamicClient, err = dynamic.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	z.kubeClientset, err = kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	z.disClient, err = discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return err
+
+	}
+	z.operatorsV1alpha1Client, err = operatorsv1alpha1.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	z.eventChannel = make(chan StatusEvent, 1)
+	z.checkStartCondition = flag.Bool("override", false, "Block until start condition occurs")
+	flag.Parse()
+	return nil
+}
+
+// main
+func main() {
+
+	var z *zapService
+	err := z.init()
 	if err != nil {
 		log.Panic(err)
 	}
-	if !*checkStartCondition {
-		err = waitForStartCondition(dynamicClient)
+	if !*z.checkStartCondition {
+		err = z.waitForStartCondition()
 		if err != nil {
-			log.Println("end condition determined when waiting for start condition - exiting")
-			os.Exit(1)
+			log.Panic("end condition determined when waiting for start condition - exiting")
 		}
 	}
-	eventChannel := make(chan StatusEvent, 1)
+
 	log.Println("starting installation of custom resources")
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	tickerAbortCheck := time.NewTicker(time.Second * 30)
 	defer tickerAbortCheck.Stop()
 	wg := sync.WaitGroup{}
 	wg.Add(2)
-	go applyManifests(ctx, &wg, eventChannel, config)
-	go approveInstallPlans(ctx, &wg, eventChannel, config)
+	go z.applyManifests(ctx, &wg)
+	go z.approveInstallPlans(ctx, &wg, z.eventChannel)
 	const maxRetries = 20
 	var retries int
 	var countNotDone int
@@ -387,7 +392,7 @@ func main() {
 	status := map[string]string{}
 	for {
 		select {
-		case notification := <-eventChannel:
+		case notification := <-z.eventChannel:
 			key := strings.Join([]string{notification.apiVersion, notification.kind, notification.name, notification.namespace}, " ")
 			log.Println(notification.status, notification.apiVersion, notification.kind, notification.err)
 			switch notification.status {
@@ -417,8 +422,8 @@ func main() {
 			os.Exit(0)
 
 		case <-tickerAbortCheck.C:
-			versionFound, versionProgressing, err := IsStatusConditionPresentAndTrue(
-				dynamicClient, clusterVersionResource(), "version", "Progressing")
+			versionFound, versionProgressing, err := z.isStatusConditionPresentAndTrue(
+				clusterVersionResource(), "version", "Progressing")
 			if err != nil {
 				log.Println(err, "will retry")
 				retries += 1
