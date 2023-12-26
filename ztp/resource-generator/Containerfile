@@ -18,6 +18,7 @@ RUN make build
 WORKDIR $SC_ROOT
 RUN make build
 WORKDIR $AZTP_EXTRACTOR_ROOT
+RUN make build
 WORKDIR $ACC_ROOT
 RUN make build
 
