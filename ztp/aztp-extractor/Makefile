@@ -8,7 +8,7 @@ fmt:
 	gofmt -l -w -s .
 
 build:
-	go build -o zap-extractor ./
+	go build -o aztp-extractor ./
 
 test:
 	go test ./... -v
@@ -17,5 +17,5 @@ vet:
 	go vet ./...
 
 clean:
-	rm zap-extractor
+	rm aztp-extractor
 	rm -rf out/

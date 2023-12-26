@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zap
-  namespace: zap-extractor
+  name: aztp
+  namespace: aztp-extractor
 spec:
   selector:
     matchLabels:
-      zap: "extractor"
+      aztp: "extractor"
   replicas: 1
   template:
     metadata:
       labels:
-        zap: "extractor"
+        aztp: "extractor"
     spec:
-      serviceAccountName: zap-extractor-sa
+      serviceAccountName: aztp-extractor-sa
       terminationGracePeriodSeconds: 3
       restartPolicy: Always
       containers:
@@ -32,7 +32,7 @@ spec:
           - -c
           - --
           args:
-          - zap-extractor
+          - aztp-extractor
           env:
           - name: CONFIGMAP_NAME
             value: "ztp-post-provision"

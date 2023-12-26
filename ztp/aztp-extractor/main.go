@@ -21,7 +21,7 @@ import (
 	cluster "open-cluster-management.io/api/cluster/v1"
 )
 
-type zapExtractor struct {
+type aztpExtractor struct {
 	retryTime     time.Duration
 	ocmClientset  *ocmClient.Clientset
 	kubeClientSet *kubernetes.Clientset
@@ -31,9 +31,9 @@ type zapExtractor struct {
 	innerCmNs     string
 }
 
-func (z *zapExtractor) convertObjects(mc *cluster.ManagedCluster) error {
+func (z *aztpExtractor) convertObjects(mc *cluster.ManagedCluster) error {
 	clusterName := mc.ObjectMeta.Name
-	configMapName := fmt.Sprintf("%s-zap", clusterName)
+	configMapName := fmt.Sprintf("%s-aztp", clusterName)
 
 	_, err := z.kubeClientSet.CoreV1().ConfigMaps(clusterName).Get(
 		z.ctx, configMapName, metav1.GetOptions{})
@@ -90,21 +90,21 @@ func (z *zapExtractor) convertObjects(mc *cluster.ManagedCluster) error {
 	return nil
 }
 
-func (z *zapExtractor) handleAdd(e watch.Event) error {
+func (z *aztpExtractor) handleAdd(e watch.Event) error {
 	mc := e.Object.(*cluster.ManagedCluster)
 	log.Printf("handling addition of managedcluster %s", mc.ObjectMeta.GetName())
 	val, found := mc.ObjectMeta.Labels["ztp-accelerated-provisioning"]
 	if found && (val == "full" || val == "policies") {
-		log.Printf("managedcluster %s is labelled for ZAP variant %s", mc.ObjectMeta.GetName(), val)
+		log.Printf("managedcluster %s is labelled for AZTP variant %s", mc.ObjectMeta.GetName(), val)
 		return z.convertObjects(mc)
 	}
 	return nil
 }
 
-func (z *zapExtractor) handleDel(e watch.Event) error {
+func (z *aztpExtractor) handleDel(e watch.Event) error {
 	mc := e.Object.(*cluster.ManagedCluster)
 	clusterName := mc.ObjectMeta.GetName()
-	configMapName := fmt.Sprintf("%s-zap", clusterName)
+	configMapName := fmt.Sprintf("%s-aztp", clusterName)
 	log.Printf("handling deletion of managedcluster %s", clusterName)
 	err := z.kubeClientSet.CoreV1().ConfigMaps(clusterName).Delete(z.ctx, configMapName, metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
@@ -114,7 +114,7 @@ func (z *zapExtractor) handleDel(e watch.Event) error {
 	return nil
 }
 
-func (z *zapExtractor) watchManagedClusters() error {
+func (z *aztpExtractor) watchManagedClusters() error {
 
 	watcher, err := z.ocmClientset.ClusterV1().ManagedClusters().Watch(z.ctx, metav1.ListOptions{})
 	if err != nil {
@@ -141,8 +141,8 @@ func (z *zapExtractor) watchManagedClusters() error {
 	return nil
 }
 
-func Init() (z *zapExtractor) {
-	z = &zapExtractor{}
+func Init() (z *aztpExtractor) {
+	z = &aztpExtractor{}
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		log.Fatalln(err)
@@ -172,13 +172,13 @@ func Init() (z *zapExtractor) {
 // main
 func main() {
 
-	zap := Init()
+	aztp := Init()
 	log.Println("watching ManagedClusters")
 	for {
-		err := zap.watchManagedClusters()
+		err := aztp.watchManagedClusters()
 		if err != nil {
-			log.Printf("managed cluster watcher exited: %s. will retry in %v", err, zap.retryTime)
-			time.Sleep(zap.retryTime)
+			log.Printf("managed cluster watcher exited: %s. will retry in %v", err, aztp.retryTime)
+			time.Sleep(aztp.retryTime)
 		}
 	}
 
