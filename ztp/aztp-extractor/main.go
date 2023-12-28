@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -31,7 +32,33 @@ type aztpExtractor struct {
 	innerCmNs     string
 }
 
-func (z *aztpExtractor) convertObjects(mc *cluster.ManagedCluster) error {
+func addNodeConfig() unstructured.Unstructured {
+
+	nodeConfig := unstructured.Unstructured{}
+	nodeConfig.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "config.openshift.io",
+		Version: "v1",
+		Kind:    "Node",
+	})
+	nodeConfig.SetName("cluster")
+	content := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"cgroupMode": "v1",
+		},
+	}
+	nodeConfig.SetUnstructuredContent(content)
+	return nodeConfig
+}
+
+func getZtpImage() string {
+	image := os.Getenv("ZTP_IMAGE")
+	if image != "" {
+		return image
+	}
+	return "quay.io/opwnahift-kni/ztp-site-generator:latest"
+}
+
+func (z *aztpExtractor) convertObjects(mc *cluster.ManagedCluster, variant string) error {
 	clusterName := mc.ObjectMeta.Name
 	configMapName := fmt.Sprintf("%s-aztp", clusterName)
 
@@ -58,12 +85,27 @@ func (z *aztpExtractor) convertObjects(mc *cluster.ManagedCluster) error {
 
 	for _, ob := range objects {
 		ob.Object["status"] = map[string]interface{}{} // remove status, we can't apply it
-		switch ob.GetKind() {
+		kind := ob.GetKind()
+		switch kind {
 		case "Namespace", "OperatorGroup", "Subscription", "CatalogSource", "PerformanceProfile", "Tuned":
 			directlyAppliedObjects = append(directlyAppliedObjects, ob)
+			// This is a workaround for the missing cgroup v1 setting when performance profile is applied on day 0
+			if kind == "PerformanceProfile" {
+				cgroup := addNodeConfig()
+				directlyAppliedObjects = append(directlyAppliedObjects, cgroup)
+			}
 		default:
 			wrappedObjects = append(wrappedObjects, ob)
 		}
+	}
+	if variant == "full" {
+		var data templateData
+		data.ZtpImage = getZtpImage()
+		objects, err := renderAztpTemplates(data)
+		if err != nil {
+			return err
+		}
+		directlyAppliedObjects = append(directlyAppliedObjects, objects...)
 	}
 
 	innerCm, err := cu.WrapObjects(wrappedObjects, z.innerCmName, z.innerCmNs)
@@ -96,7 +138,7 @@ func (z *aztpExtractor) handleAdd(e watch.Event) error {
 	val, found := mc.ObjectMeta.Labels["ztp-accelerated-provisioning"]
 	if found && (val == "full" || val == "policies") {
 		log.Printf("managedcluster %s is labelled for AZTP variant %s", mc.ObjectMeta.GetName(), val)
-		return z.convertObjects(mc)
+		return z.convertObjects(mc, val)
 	}
 	return nil
 }

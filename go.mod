@@ -34,7 +34,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.28.2
 	k8s.io/apiextensions-apiserver v0.27.4
-	k8s.io/apimachinery v0.28.2
+	k8s.io/apimachinery v0.29.0
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.100.1
