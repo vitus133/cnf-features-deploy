@@ -27,7 +27,7 @@ spec:
     ingressVIP: 10.16.231.3
     manifestsConfigMapRefs:
         - name: cluster1
-        - name: cluster1-zap
+        - name: cluster1-aztp
     networking:
         clusterNetwork:
             - cidr: 10.128.0.0/14

@@ -304,10 +304,10 @@ func (rv *Clusters) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	rv.ManifestsConfigMapRefs = append(rv.ManifestsConfigMapRefs, ManifestsConfigMapReference{
 		Name: rv.ClusterName,
 	})
-	zapLabel, found := rv.ClusterLabels["ztp-accelerated-provisioning"]
-	if found && (zapLabel == "full" || zapLabel == "policies") {
+	aztpLabel, found := rv.ClusterLabels["ztp-accelerated-provisioning"]
+	if found && (aztpLabel == "full" || aztpLabel == "policies") {
 		rv.ManifestsConfigMapRefs = append(rv.ManifestsConfigMapRefs, ManifestsConfigMapReference{
-			Name: fmt.Sprintf("%s-zap", rv.ClusterName),
+			Name: fmt.Sprintf("%s-aztp", rv.ClusterName),
 		})
 	}
 	return nil
