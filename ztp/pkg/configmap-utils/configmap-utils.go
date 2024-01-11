@@ -1,6 +1,8 @@
 package cmutils
 
 import (
+	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -21,7 +23,7 @@ func WrapObjects(objects []unstructured.Unstructured, name string, namespace str
 	}
 
 	for _, item := range objects {
-		key := item.GetName()
+		key := fmt.Sprintf("%s.yaml", item.GetName())
 		out, err := yaml.Marshal(item.Object)
 		if err != nil {
 			return &cm, err
