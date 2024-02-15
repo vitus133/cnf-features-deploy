@@ -40,7 +40,7 @@
             }
           ],
           "terminationMessagePolicy": "File",
-          "image": "quay.io/openshift-kni/ztp-site-generator:latest"
+          "image": "quay.io/vgrinber/ztp-site-generator:4.16"
         },
         {
           "args": [

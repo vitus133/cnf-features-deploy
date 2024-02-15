@@ -10,20 +10,10 @@ metadata:
   namespace: openshift-gitops
 spec:
   destination:
-    server: https://kubernetes.default.svc
     namespace: clusters-sub
+    server: https://kubernetes.default.svc
   project: ztp-app-project
   source:
-    path: ztp/gitops-subscriptions/argocd/example/siteconfig
-    repoURL: https://github.com/openshift-kni/cnf-features-deploy
-    targetRevision: master
-    # uncomment the below plugin if you will be adding the plugin binaries in the same repo->dir where
-    # the sitconfig.yaml exist AND use the ../../hack/patch-argocd-dev.sh script to re-patch the deployment-repo-server
-#    plugin:
-#      name: kustomize-with-local-plugins
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-    - CreateNamespace=true
+    path: install
+    repoURL: https://gitlab.cee.redhat.com/ran/lab-ztp.git
+    targetRevision: hv6-hub
