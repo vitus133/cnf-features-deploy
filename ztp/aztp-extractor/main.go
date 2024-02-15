@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -32,22 +31,18 @@ type aztpExtractor struct {
 	innerCmNs     string
 }
 
-func addNodeConfig() unstructured.Unstructured {
+func addNodeConfig(nodeConfig *unstructured.Unstructured) {
 
-	nodeConfig := unstructured.Unstructured{}
-	nodeConfig.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "config.openshift.io",
-		Version: "v1",
-		Kind:    "Node",
-	})
-	nodeConfig.SetName("cluster")
-	content := map[string]interface{}{
+	nodeConfig.Object = map[string]interface{}{
+		"apiVersion": "config.openshift.io/v1",
+		"kind":       "Node",
+		"metadata": map[string]interface{}{
+			"name": "cluster",
+		},
 		"spec": map[string]interface{}{
 			"cgroupMode": "v1",
 		},
 	}
-	nodeConfig.SetUnstructuredContent(content)
-	return nodeConfig
 }
 
 func getZtpImage() string {
@@ -58,20 +53,15 @@ func getZtpImage() string {
 	return "quay.io/opwnahift-kni/ztp-site-generator:latest"
 }
 
+// TODO: pass cluster name instead of mc
 func (z *aztpExtractor) convertObjects(mc *cluster.ManagedCluster, variant string) error {
 	clusterName := mc.ObjectMeta.Name
 	configMapName := fmt.Sprintf("%s-aztp", clusterName)
 
-	_, err := z.kubeClientSet.CoreV1().ConfigMaps(clusterName).Get(
-		z.ctx, configMapName, metav1.GetOptions{})
-	if err == nil {
-		log.Printf("configmap %s already exists in %s namespace, skip policy extraction", configMapName, clusterName)
-		return nil
-	}
-	if !errors.IsNotFound(err) {
+	err := z.kubeClientSet.CoreV1().ConfigMaps(clusterName).Delete(z.ctx, configMapName, metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
-
 	policies, err := z.pe.GetPoliciesForNamespace(clusterName)
 	if err != nil {
 		return err
@@ -80,6 +70,7 @@ func (z *aztpExtractor) convertObjects(mc *cluster.ManagedCluster, variant strin
 	if err != nil {
 		return err
 	}
+	log.Printf("found %d policies and %d objects for %s", len(policies), len(objects), clusterName)
 	var directlyAppliedObjects []unstructured.Unstructured
 	var wrappedObjects []unstructured.Unstructured
 
@@ -87,15 +78,26 @@ func (z *aztpExtractor) convertObjects(mc *cluster.ManagedCluster, variant strin
 		ob.Object["status"] = map[string]interface{}{} // remove status, we can't apply it
 		kind := ob.GetKind()
 		switch kind {
-		case "Namespace", "OperatorGroup", "Subscription", "CatalogSource", "PerformanceProfile", "Tuned":
-			directlyAppliedObjects = append(directlyAppliedObjects, ob)
+		case "PerformanceProfile":
 			// This is a workaround for the missing cgroup v1 setting when performance profile is applied on day 0
-			if kind == "PerformanceProfile" {
-				cgroup := addNodeConfig()
-				directlyAppliedObjects = append(directlyAppliedObjects, cgroup)
-			}
+			cgroup := unstructured.Unstructured{}
+			addNodeConfig(&cgroup)
+
+			directlyAppliedObjects = append(directlyAppliedObjects, cgroup)
+			log.Printf("added %s %s to directlyAppliedObjects", cgroup.GetKind(), cgroup.GetName())
+			// This is a workaround for performance profile unable to apply because of a missing webhook
+			name := fmt.Sprintf("0001-%s", ob.GetName())
+			ob.SetName(name)
+			directlyAppliedObjects = append(directlyAppliedObjects, ob)
+			log.Printf("added %s %s to directlyAppliedObjects", kind, ob.GetName())
+			//"OperatorGroup", "Subscription", - trouble to apply during bootstrap recently
+
+		case "Tuned", "Namespace", "CatalogSource":
+			directlyAppliedObjects = append(directlyAppliedObjects, ob)
+			log.Printf("added %s %s to directlyAppliedObjects", kind, ob.GetName())
 		default:
 			wrappedObjects = append(wrappedObjects, ob)
+			log.Printf("added %s %s to wrappedObjects", kind, ob.GetName())
 		}
 	}
 	if variant == "full" {
@@ -108,19 +110,20 @@ func (z *aztpExtractor) convertObjects(mc *cluster.ManagedCluster, variant strin
 		directlyAppliedObjects = append(directlyAppliedObjects, objects...)
 	}
 
-	innerCm, err := cu.WrapObjects(wrappedObjects, z.innerCmName, z.innerCmNs)
-	if err != nil {
-		return err
-	}
+	if len(wrappedObjects) > 0 {
+		innerCm, err := cu.WrapObjects(wrappedObjects, z.innerCmName, z.innerCmNs)
+		if err != nil {
+			return err
+		}
 
-	innerCmObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(innerCm)
-	if err != nil {
-		return err
+		innerCmObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(innerCm)
+		if err != nil {
+			return err
+		}
+		var innerCmUns unstructured.Unstructured
+		innerCmUns.SetUnstructuredContent(innerCmObj)
+		directlyAppliedObjects = append(directlyAppliedObjects, innerCmUns)
 	}
-	var innerCmUns unstructured.Unstructured
-	innerCmUns.SetUnstructuredContent(innerCmObj)
-	directlyAppliedObjects = append(directlyAppliedObjects, innerCmUns)
-
 	cm, err := cu.WrapObjects(directlyAppliedObjects, configMapName, clusterName)
 	if err != nil {
 		return err
@@ -134,7 +137,7 @@ func (z *aztpExtractor) convertObjects(mc *cluster.ManagedCluster, variant strin
 
 func (z *aztpExtractor) handleAdd(e watch.Event) error {
 	mc := e.Object.(*cluster.ManagedCluster)
-	log.Printf("handling addition of managedcluster %s", mc.ObjectMeta.GetName())
+	log.Printf("handling addition / modification of managedcluster %s", mc.ObjectMeta.GetName())
 	val, found := mc.ObjectMeta.Labels["ztp-accelerated-provisioning"]
 	if found && (val == "full" || val == "policies") {
 		log.Printf("managedcluster %s is labelled for AZTP variant %s", mc.ObjectMeta.GetName(), val)
@@ -165,7 +168,8 @@ func (z *aztpExtractor) watchManagedClusters() error {
 
 	for event := range watcher.ResultChan() {
 		switch event.Type {
-		case watch.Added:
+		// case watch.Added:
+		case watch.Modified, watch.Added:
 			err = z.handleAdd(event)
 			if err != nil {
 				log.Print(err)
@@ -177,7 +181,6 @@ func (z *aztpExtractor) watchManagedClusters() error {
 			}
 		case watch.Error:
 			return fmt.Errorf("watcher error: %+v", event)
-
 		}
 	}
 	return nil
